@@ -1,18 +1,18 @@
 FORMAT FILE .env
 ===================================================================
-# Server Configuration
+.# Server Configuration
 PORT=8000
 NODE_ENV=public
 
-# CORS Configuration
+.# CORS Configuration
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# Rate Limiting
+.# Rate Limiting
 RATE_LIMIT_WINDOW_MS=300000
 RATE_LIMIT_MAX_REQUESTS=500
 
-# Firebase Admin SDK Configuration
-# ⚠️ กรุณาแทนที่ค่าเหล่านี้ด้วยข้อมูลจริงจาก Firebase Console
+.# Firebase Admin SDK Configuration
+.# ⚠️ กรุณาแทนที่ค่าเหล่านี้ด้วยข้อมูลจริงจาก Firebase Console
 FIREBASE_PROJECT_ID=example
 FIREBASE_PRIVATE_KEY_ID=1111111111111111111111111111
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\example\n-----END PRIVATE KEY-----\n"
