@@ -205,10 +205,10 @@ export default function MaterialsManagement() {
       <Sidebar isOpen={isSidebarOpen} activePage="ข้อมูลวัตถุดิบ" />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center">
+        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
           <button
             onClick={toggleSidebar}
-            className="p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
             <Menu className="h-6 w-6" />
           </button>

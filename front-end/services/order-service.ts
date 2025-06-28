@@ -8,6 +8,24 @@ const DISH_RECIPES = {
   จานหัวใจ: 5,
 }
 
+export async function updateProductionQuantity(orderId: string, newQuantity: number) {
+  try {
+    const response = await fetch(`/api/orders/${orderId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ remainingQuantity: `${newQuantity} จาน` }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "เกิดข้อผิดพลาด");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating production quantity:", error);
+    throw error;
+  }
+}
+
 export const getOrders = async (): Promise<Order[]> => {
   try {
     const response = await apiClient.getOrders()

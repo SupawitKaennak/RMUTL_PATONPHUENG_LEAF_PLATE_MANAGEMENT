@@ -90,9 +90,61 @@ router.post("/", validateOrder, async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params
-    const updateData = req.body
+    const { remainingQuantity, machineId, electricityCost, ...otherFields } = req.body
 
-    await db.collection("orders").doc(id).update(updateData)
+    // ดึงข้อมูล order เดิม
+    const orderRef = db.collection("orders").doc(id)
+    const orderDoc = await orderRef.get()
+    if (!orderDoc.exists) {
+      return res.status(404).json({ success: false, error: "Order not found" })
+    }
+    const oldOrder = orderDoc.data()
+    let updateObj: any = { ...otherFields }
+
+    // ถ้ามีการอัปเดต remainingQuantity ให้จัดการวัตถุดิบ
+    if (remainingQuantity !== undefined) {
+      const oldQty = parseInt((oldOrder?.remainingQuantity || "0").replace(/\D/g, ""))
+      const newQty = parseInt((remainingQuantity || "0").replace(/\D/g, ""))
+      const productType = oldOrder?.product
+      const diff = Math.abs(newQty - oldQty)
+      const materialNeeded = calculateMaterialNeeded(productType, diff)
+
+      if (newQty < oldQty) {
+        // คืนวัตถุดิบ
+        const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
+        if (!materialSnapshot.empty) {
+          const materialDoc = materialSnapshot.docs[0]
+          const currentQuantity = materialDoc.data().quantity
+          await materialDoc.ref.update({
+            quantity: currentQuantity + materialNeeded,
+          })
+        }
+      } else if (newQty > oldQty) {
+        // ใช้วัตถุดิบเพิ่ม
+        const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
+        if (!materialSnapshot.empty) {
+          const materialDoc = materialSnapshot.docs[0]
+          const currentQuantity = materialDoc.data().quantity
+          if (currentQuantity < materialNeeded) {
+            return res.status(400).json({
+              success: false,
+              error: `ใบตองตึงไม่เพียงพอ ต้องการเพิ่มอีก ${materialNeeded} ใบ แต่มีอยู่ ${currentQuantity} ใบ`,
+            })
+          }
+          await materialDoc.ref.update({
+            quantity: currentQuantity - materialNeeded,
+          })
+        }
+      }
+      updateObj.remainingQuantity = remainingQuantity
+    }
+
+    // อัปเดต machineId, electricityCost ถ้ามี
+    if (machineId !== undefined) updateObj.machineId = machineId
+    if (electricityCost !== undefined) updateObj.electricityCost = electricityCost
+
+    // อัปเดต order
+    await orderRef.update(updateObj)
 
     res.json({
       success: true,
