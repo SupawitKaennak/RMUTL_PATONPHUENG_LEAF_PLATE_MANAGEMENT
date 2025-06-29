@@ -51,7 +51,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg bg-black text-white">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg bg-white text-black">
         <DialogHeader className="bg-teal-400 text-white p-4">
           <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
           <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มวัตถุดิบใหม่</DialogDescription>
@@ -67,7 +67,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
               value={materialName}
               onChange={(e) => setMaterialName(e.target.value)}
               placeholder="ระบุชื่อวัตถุดิบ"
-              className="bg-black border-white text-white"
+              className="bg-white border-gray text-black"
             />
           </div>
 
@@ -76,17 +76,17 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
               หน่วย
             </Label>
             <Select value={unit} onValueChange={setUnit}>
-              <SelectTrigger id="material-unit" className="bg-black border-white text-white">
+              <SelectTrigger id="material-unit" className="bg-white border-gray text-black">
                 <SelectValue placeholder="เลือกหน่วย" />
               </SelectTrigger>
-              <SelectContent className="bg-black text-white border-white">
-                <SelectItem value="ใบ" className="text-white focus:bg-gray-800 focus:text-white">
+              <SelectContent className="bg-white text-black border-gray">
+                <SelectItem value="ใบ" className="text-black focus:bg-gray-300 focus:text-black">
                   ใบ
                 </SelectItem>
-                <SelectItem value="ถุง" className="text-white focus:bg-gray-800 focus:text-white">
+                <SelectItem value="ถุง" className="text-black focus:bg-gray-300 focus:text-black">
                   ถุง
                 </SelectItem>
-                <SelectItem value="อัน" className="text-white focus:bg-gray-800 focus:text-white">
+                <SelectItem value="อัน" className="text-black focus:bg-gray-300 focus:text-black">
                   อัน
                 </SelectItem>
               </SelectContent>
@@ -103,7 +103,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="0"
-              className="bg-black border-white text-white"
+              className="bg-white border-gray text-black"
             />
           </div>
 
@@ -118,7 +118,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
               value={pricePerUnit}
               onChange={(e) => setPricePerUnit(e.target.value)}
               placeholder="0.00"
-              className="bg-black border-white text-white"
+              className="bg-white border-gray text-black"
             />
           </div>
 

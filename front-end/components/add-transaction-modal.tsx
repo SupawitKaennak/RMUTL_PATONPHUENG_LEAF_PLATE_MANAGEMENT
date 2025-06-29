@@ -71,7 +71,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-black text-white">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-white text-white">
         <DialogHeader className="bg-emerald-500 text-white p-4">
           <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
           <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มรายรับหรือรายจ่ายใหม่</DialogDescription>
@@ -85,13 +85,13 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="รายรับ" id="add-income" />
-                <Label htmlFor="add-income" className="text-white">
+                <Label htmlFor="add-income" className="text-black">
                   รายรับ
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="รายจ่าย" id="add-expense" />
-                <Label htmlFor="add-expense" className="text-white">
+                <Label htmlFor="add-expense" className="text-black">
                   รายจ่าย
                 </Label>
               </div>
@@ -99,7 +99,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="add-date" className="block mb-2 text-white">
+            <Label htmlFor="add-date" className="block mb-2 text-black">
               วัน/เดือน/ปี
             </Label>
             <div className="relative">
@@ -109,34 +109,34 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
                 placeholder={getCurrentThaiDate()}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="pr-10 bg-black border-white text-white"
+                className="pr-10 bg-white border-gray text-black"
               />
               <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white" size={20} />
             </div>
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="add-category" className="block mb-2 text-white">
+            <Label htmlFor="add-category" className="block mb-2 text-black">
               ประเภท <span className="text-red-400">*</span>
             </Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger id="add-category" className="bg-black border-white text-white">
+              <SelectTrigger id="add-category" className="bg-white border-gray text-black">
                 <SelectValue placeholder="เลือกประเภท" />
               </SelectTrigger>
-              <SelectContent className="bg-black text-white border-white">
-                <SelectItem value="วัตถุดิบ" className="text-white focus:bg-gray-800 focus:text-white">
+              <SelectContent className="bg-white text-white border-gray">
+                <SelectItem value="วัตถุดิบ" className="text-black focus:bg-gray-300 focus:text-black">
                   วัตถุดิบ
                 </SelectItem>
-                <SelectItem value="ค่าไฟ" className="text-white focus:bg-gray-800 focus:text-white">
+                <SelectItem value="ค่าไฟ" className="text-black focus:bg-gray-300 focus:text-black">
                   ค่าไฟ
                 </SelectItem>
-                <SelectItem value="ขายงาน" className="text-white focus:bg-gray-800 focus:text-white">
+                <SelectItem value="ขายงาน" className="text-black focus:bg-gray-300 focus:text-black">
                   ขายงาน
                 </SelectItem>
-                <SelectItem value="ค่าจ้าง" className="text-white focus:bg-gray-800 focus:text-white">
+                <SelectItem value="ค่าจ้าง" className="text-black focus:bg-gray-300 focus:text-black">
                   ค่าจ้าง
                 </SelectItem>
-                <SelectItem value="รายการอื่นๆ" className="text-white focus:bg-gray-800 focus:text-white">
+                <SelectItem value="รายการอื่นๆ" className="text-black focus:bg-gray-300 focus:text-black">
                   รายการอื่นๆ
                 </SelectItem>
               </SelectContent>
@@ -144,7 +144,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="add-description" className="block mb-2 text-white">
+            <Label htmlFor="add-description" className="block mb-2 text-black">
               รายละเอียด <span className="text-red-400">*</span>
             </Label>
             <Input
@@ -153,12 +153,12 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
               placeholder="รายละเอียด"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-black border-white text-white"
+              className="bg-white border-gray text-black"
             />
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="add-amount" className="block mb-2 text-white">
+            <Label htmlFor="add-amount" className="block mb-2 text-black">
               จำนวนเงิน <span className="text-red-400">*</span>
             </Label>
             <Input
@@ -167,12 +167,12 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
               placeholder="0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="bg-black border-white text-white"
+              className="bg-white border-gray text-black"
             />
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="add-quantity" className="block mb-2 text-white">
+            <Label htmlFor="add-quantity" className="block mb-2 text-black">
               จำนวน (ถ้ามี)
             </Label>
             <Input
@@ -181,12 +181,12 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
               placeholder="เช่น 10 ใบ, 5 กก."
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="bg-black border-white text-white"
+              className="bg-white border-gray text-black"
             />
           </div>
 
           <div className="mb-4">
-            <Label htmlFor="add-notes" className="block mb-2 text-white">
+            <Label htmlFor="add-notes" className="block mb-2 text-black">
               หมายเหตุ
             </Label>
             <Textarea
@@ -194,7 +194,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
               placeholder="รายละเอียดเพิ่มเติม"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="resize-none bg-black border-white text-white"
+              className="resize-none bg-white border-gray text-black"
             />
           </div>
 
