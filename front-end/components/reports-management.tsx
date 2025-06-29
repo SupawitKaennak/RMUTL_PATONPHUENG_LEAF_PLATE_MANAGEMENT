@@ -159,7 +159,7 @@ export default function ReportsManagement() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} activePage="สรุปรายงาน" />
+      <Sidebar isOpen={isSidebarOpen} activePage="สรุปรายงาน" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
