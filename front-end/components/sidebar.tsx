@@ -24,7 +24,7 @@ export default function Sidebar({ isOpen, activePage = "รายรับ - ร
     >
       <div className="p-4 h-full flex flex-col">
         <div className="flex items-center justify-center h-16 border-b border-blue-400">
-          <h2 className="text-xl font-bold">ระบบจัดการ</h2>
+          <h2 className="text-xl font-bold">ระบบบันทึกและคำนวณต้นทุนจานใบไม้</h2>
         </div>
         <nav className="mt-6 flex-1">
           <ul className="space-y-1">
