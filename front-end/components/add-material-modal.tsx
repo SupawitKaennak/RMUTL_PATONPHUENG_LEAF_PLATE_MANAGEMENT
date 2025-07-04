@@ -83,8 +83,8 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
                 <SelectItem value="ใบ" className="text-black focus:bg-gray-300 focus:text-black">
                   ใบ
                 </SelectItem>
-                <SelectItem value="ถุง" className="text-black focus:bg-gray-300 focus:text-black">
-                  ถุง
+                <SelectItem value="กรัม" className="text-black focus:bg-gray-300 focus:text-black">
+                  กรัม
                 </SelectItem>
                 <SelectItem value="อัน" className="text-black focus:bg-gray-300 focus:text-black">
                   อัน
