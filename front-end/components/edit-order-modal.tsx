@@ -68,15 +68,20 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
       if (productionQuantity !== originalProductionQuantity) {
         const result = await updateProductionQuantity(
           order.id,
-          originalProductionQuantity,
-          productionQuantity,
-          order.product,
+          Number.parseInt(productionQuantity),
         )
 
         if (!result.success) {
           alert(result.message || "ไม่สามารถอัปเดตจำนวนการผลิตได้")
           setIsUpdating(false)
           return
+        }
+
+        // Update materialCost and totalCost from backend response if available
+        if (result.data) {
+          setMaterialCost(result.data.materialCost || 0)
+          setTotalCost(result.data.totalCost || 0)
+          setOriginalProductionQuantity(productionQuantity) // Update originalProductionQuantity to prevent incorrect recalculation
         }
       }
 

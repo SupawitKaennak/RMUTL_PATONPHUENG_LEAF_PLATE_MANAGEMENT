@@ -101,7 +101,7 @@ router.put("/:id", async (req, res) => {
     const oldOrder = orderDoc.data()
     let updateObj: any = { ...otherFields }
 
-    // ถ้ามีการอัปเดต remainingQuantity ให้จัดการวัตถุดิบ
+    // ถ้ามีการอัปเดต remainingQuantity ให้จัดการวัตถุดิบและคำนวณต้นทุนวัตถุดิบใหม่
     if (remainingQuantity !== undefined) {
       const oldQty = parseInt((oldOrder?.remainingQuantity || "0").replace(/\D/g, ""))
       const newQty = parseInt((remainingQuantity || "0").replace(/\D/g, ""))
@@ -109,22 +109,20 @@ router.put("/:id", async (req, res) => {
       const diff = Math.abs(newQty - oldQty)
       const materialNeeded = calculateMaterialNeeded(productType, diff)
 
-      if (newQty < oldQty) {
-        // คืนวัตถุดิบ
-        const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
-        if (!materialSnapshot.empty) {
-          const materialDoc = materialSnapshot.docs[0]
-          const currentQuantity = materialDoc.data().quantity
+      // ดึงราคาต่อหน่วยจริงจากฐานข้อมูลวัตถุดิบ
+      const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
+      let materialCostPerLeaf = 1.0
+      if (!materialSnapshot.empty) {
+        const materialDoc = materialSnapshot.docs[0]
+        const currentQuantity = materialDoc.data().quantity
+
+        if (newQty < oldQty) {
+          // คืนวัตถุดิบ
           await materialDoc.ref.update({
             quantity: currentQuantity + materialNeeded,
           })
-        }
-      } else if (newQty > oldQty) {
-        // ใช้วัตถุดิบเพิ่ม
-        const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
-        if (!materialSnapshot.empty) {
-          const materialDoc = materialSnapshot.docs[0]
-          const currentQuantity = materialDoc.data().quantity
+        } else if (newQty > oldQty) {
+          // ใช้วัตถุดิบเพิ่ม
           if (currentQuantity < materialNeeded) {
             return res.status(400).json({
               success: false,
@@ -135,8 +133,18 @@ router.put("/:id", async (req, res) => {
             quantity: currentQuantity - materialNeeded,
           })
         }
+        materialCostPerLeaf = materialDoc.data().pricePerUnit || 1.0
       }
+
+      // คำนวณต้นทุนวัตถุดิบใหม่
+      const totalMaterialNeeded = calculateMaterialNeeded(productType, newQty)
+      const totalMaterialCost = totalMaterialNeeded * (materialCostPerLeaf || 1.0)
+
       updateObj.remainingQuantity = remainingQuantity
+      updateObj.materialCost = totalMaterialCost
+      // Calculate totalCost as sum of materialCost and electricityCost
+      const electricityCostValue = electricityCost !== undefined ? electricityCost : oldOrder?.electricityCost || 0
+      updateObj.totalCost = totalMaterialCost + electricityCostValue
     }
 
     // อัปเดต machineId, electricityCost ถ้ามี
@@ -146,9 +154,14 @@ router.put("/:id", async (req, res) => {
     // อัปเดต order
     await orderRef.update(updateObj)
 
+    // Fetch updated order data after update
+    const updatedOrderDoc = await orderRef.get()
+    const updatedOrderData = updatedOrderDoc.data()
+
     res.json({
       success: true,
       message: "Order updated successfully",
+      data: updatedOrderData,
     })
   } catch (error) {
     console.error("Error updating order:", error)

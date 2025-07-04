@@ -46,9 +46,10 @@ export const addOrder = async (order: Omit<Order, "id">): Promise<string> => {
   }
 }
 
-export const updateOrder = async (id: string, data: Partial<Order>): Promise<void> => {
+export const updateOrder = async (id: string, data: Partial<Order>): Promise<Order | null> => {
   try {
-    await apiClient.updateOrder(id, data)
+    const response = await apiClient.updateOrder(id, data)
+    return response.data || null
   } catch (error) {
     console.error("Error updating order:", error)
     throw error

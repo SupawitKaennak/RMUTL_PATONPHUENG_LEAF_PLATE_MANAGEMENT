@@ -162,11 +162,17 @@ export default function OrdersManagement() {
 
   const handleUpdateOrder = async (updatedOrder: Order) => {
     try {
-      // Update the order in Firestore
-      await updateOrderService(updatedOrder.id, updatedOrder)
+      // Update the order in Firestore and get updated order data
+      const updatedOrderData = await updateOrderService(updatedOrder.id, updatedOrder)
 
-      // Update the order in local state
-      setOrders(orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)))
+      if (updatedOrderData) {
+        // Update the order in local state with updated data from backend
+        setOrders(orders.map((order) => (order.id === updatedOrderData.id ? updatedOrderData : order)))
+      } else {
+        // Fallback to using passed updatedOrder if backend data not available
+        setOrders(orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)))
+      }
+
       setSuccessMessage("อัปเดตออเดอร์สำเร็จ")
 
       // Refresh material data if context is available
