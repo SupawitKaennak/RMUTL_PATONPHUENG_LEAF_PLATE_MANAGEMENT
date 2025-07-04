@@ -256,8 +256,8 @@ router.post("/production", async (req, res) => {
       quantity: currentQuantity - materialNeeded,
     })
 
-    // คำนวณต้นทุนวัตถุดิบ
-    const materialCostPerLeaf = 1.0
+    // ดึงราคาต่อหน่วยจริงจากฐานข้อมูลวัตถุดิบ
+    const materialCostPerLeaf = materialDoc.data().pricePerUnit || 1.0
     const totalMaterialCost = materialNeeded * materialCostPerLeaf
 
     // อัปเดตออเดอร์
