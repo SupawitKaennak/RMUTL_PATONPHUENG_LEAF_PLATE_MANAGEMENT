@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DeleteOrderModal from "./delete-order-modal"
 import EditOrderModal from "./edit-order-modal"
 import SelectMachineModal from "./select-machine-modal"
+import AddSellingPriceModal from "./add-selling-price-modal"
 import { MaterialContext } from "./material-provider"
 import type { Order } from "@/types/order"
 import {
@@ -37,6 +38,10 @@ export default function OrdersManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // New selling price modal state
+  const [isAddSellingPriceModalOpen, setIsAddSellingPriceModalOpen] = useState(false)
+  const [selectedOrderForSellingPrice, setSelectedOrderForSellingPrice] = useState<Order | null>(null)
 
   // New order form state
   const [newOrderDate, setNewOrderDate] = useState("")
@@ -223,6 +228,26 @@ export default function OrdersManagement() {
     setIsAddProductionModalOpen(true)
   }
 
+  const handleAddSellingPrice = (order: Order) => {
+    setSelectedOrderForSellingPrice(order)
+    setIsAddSellingPriceModalOpen(true)
+  }
+
+  const handleSaveSellingPrice = async (updatedOrder: Order) => {
+    try {
+      const updatedOrderData = await updateOrderService(updatedOrder.id, { sellingPrice: updatedOrder.sellingPrice })
+      if (updatedOrderData) {
+        // Refetch orders to update UI in real-time
+        const ordersData = await getOrders()
+        setOrders(ordersData)
+        setSuccessMessage("เพิ่มราคาขายสำเร็จ")
+      }
+    } catch (error) {
+      console.error("Error updating selling price:", error)
+      setError("ไม่สามารถเพิ่มราคาขายได้ กรุณาลองใหม่อีกครั้ง")
+    }
+  }
+
   const handleSaveProduction = async () => {
     if (!selectedOrderId || !productionQuantity) return
 
@@ -234,20 +259,9 @@ export default function OrdersManagement() {
       const result = await addProductionQuantity(selectedOrderId, productionQuantity, order.product)
 
       if (result.success) {
-        // Update the order in local state
-        setOrders(
-          orders.map((order) => {
-            if (order.id === selectedOrderId) {
-              return {
-                ...order,
-                remainingQuantity: `${productionQuantity} จาน`,
-                materialCost: order.materialCost || 0, // จะถูกอัปเดตจาก service
-                totalCost: order.materialCost || 0,
-              }
-            }
-            return order
-          }),
-        )
+        // Refetch orders to update UI in real-time
+        const ordersData = await getOrders()
+        setOrders(ordersData)
         setIsAddProductionModalOpen(false)
         setSelectedOrderId(null)
         setProductionQuantity("")
@@ -492,9 +506,44 @@ export default function OrdersManagement() {
                             {order.totalCost > 0 ? `${order.totalCost.toFixed(2)} บาท` : ""}
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                            {order.sellingPrice > 0 ? `${order.sellingPrice.toFixed(2)} บาท` : ""}
+                            {order.sellingPrice > 0 ? (
+                              `${order.sellingPrice.toFixed(2)} บาท`
+                            ) : (
+                              <button
+                                onClick={() => handleAddSellingPrice(order)}
+                                className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                              >
+                                เพิ่ม
+                              </button>
+                            )}
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{order.status}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
+                            <Select
+                              value={order.status}
+                              onValueChange={async (newStatus) => {
+                                try {
+                                  const updatedOrderData = await updateOrderService(order.id, { status: newStatus })
+                                  if (updatedOrderData) {
+                                    // Refetch orders to update UI in real-time
+                                    const ordersData = await getOrders()
+                                    setOrders(ordersData)
+                                    setSuccessMessage("อัปเดตสถานะสำเร็จ")
+                                  }
+                                } catch (error) {
+                                  console.error("Error updating status:", error)
+                                  setError("ไม่สามารถอัปเดตสถานะได้ กรุณาลองใหม่อีกครั้ง")
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="กำลังผลิต">กำลังผลิต</SelectItem>
+                                <SelectItem value="ผลิตเสร็จสิ้น">ผลิตเสร็จสิ้น</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
                           <td className="px-3 py-2 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">
                               <button
@@ -649,6 +698,13 @@ export default function OrdersManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AddSellingPriceModal
+        isOpen={isAddSellingPriceModalOpen}
+        onClose={() => setIsAddSellingPriceModalOpen(false)}
+        onSave={handleSaveSellingPrice}
+        order={selectedOrderForSellingPrice}
+      />
 
       {/* Select Machine Modal */}
       <SelectMachineModal
