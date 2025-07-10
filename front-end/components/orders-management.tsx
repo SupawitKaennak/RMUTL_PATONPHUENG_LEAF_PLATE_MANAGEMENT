@@ -535,12 +535,12 @@ export default function OrdersManagement() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
+                              <SelectTrigger className="w-22 h-6 text-xs">
+                                <SelectValue className="text-xs" />
                               </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="กำลังผลิต">กำลังผลิต</SelectItem>
-                                <SelectItem value="ผลิตเสร็จสิ้น">ผลิตเสร็จสิ้น</SelectItem>
+                              <SelectContent className="text-xs">
+                                <SelectItem value="กำลังผลิต" className="text-xs">กำลังผลิต</SelectItem>
+                                <SelectItem value="ผลิตเสร็จสิ้น" className="text-xs">ผลิตเสร็จสิ้น</SelectItem>
                               </SelectContent>
                             </Select>
                           </td>
