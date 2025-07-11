@@ -5,6 +5,22 @@ import type { Material, ApiResponse } from "../types"
 
 const router = express.Router()
 
+// Hard-coded Bearer token for simple auth
+const BEARER_TOKEN = "hardcodedtoken123"
+
+// Middleware to check Bearer token
+router.use((req, res, next) => {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, error: "Unauthorized: Missing Bearer token" })
+  }
+  const token = authHeader.substring(7)
+  if (token !== BEARER_TOKEN) {
+    return res.status(401).json({ success: false, error: "Unauthorized: Invalid Bearer token" })
+  }
+  next()
+})
+
 // GET /api/materials - ดึงข้อมูลวัตถุดิบทั้งหมด
 router.get("/", async (req, res) => {
   try {

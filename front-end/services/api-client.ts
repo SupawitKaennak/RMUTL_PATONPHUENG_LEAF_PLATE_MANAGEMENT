@@ -12,9 +12,12 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`
 
+    const token = "hardcodedtoken123" // Hard-coded Bearer token
+
     const config: RequestInit = {
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
         ...options.headers,
       },
       ...options,
