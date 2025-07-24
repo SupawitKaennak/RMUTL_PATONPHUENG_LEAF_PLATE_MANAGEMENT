@@ -98,6 +98,7 @@ export default function ReportsManagement() {
   // Bar chart options
   const barOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top" as const,
@@ -126,6 +127,7 @@ export default function ReportsManagement() {
   // Line chart options
   const lineOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top" as const,

@@ -61,6 +61,12 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
   const handleSave = async () => {
     if (!order) return
 
+    // Validation: ตรวจสอบค่าก่อนอัปเดต
+    if (!order.id || !productionQuantity || isNaN(Number(productionQuantity))) {
+      alert("ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบจำนวนที่ผลิต");
+      return;
+    }
+
     setIsUpdating(true)
 
     try {
@@ -98,9 +104,9 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
 
       onSave(updatedOrder)
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating order:", error)
-      alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล")
+      alert(error?.message || error?.toString() || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล")
     } finally {
       setIsUpdating(false)
     }

@@ -12,7 +12,10 @@ export async function updateProductionQuantity(orderId: string, newQuantity: num
   try {
     const response = await fetch(`/api/orders/${orderId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer hardcodedtoken123"
+      },
       body: JSON.stringify({ remainingQuantity: `${newQuantity} จาน` }),
     });
     if (!response.ok) {
