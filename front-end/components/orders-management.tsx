@@ -54,7 +54,6 @@ export default function OrdersManagement() {
   const [filterDate, setFilterDate] = useState("")
   const [filterMonth, setFilterMonth] = useState("")
   const [filterYear, setFilterYear] = useState("")
-  const [filterDishShape, setFilterDishShape] = useState("")
 
   // Try to access the material context
   const materialContext = useContext(MaterialContext)
@@ -116,20 +115,8 @@ export default function OrdersManagement() {
 
   const applyFilter = () => {
     let filtered = [...orders]
-    
-    console.log('Applying filter with:', { filterDate, filterMonth, filterYear, filterDishShape })
-    console.log('Total orders:', orders.length)
-    
-    // Show sample order dates for debugging
-    if (orders.length > 0) {
-      console.log('Sample order dates:')
-      orders.slice(0, 3).forEach((o, i) => {
-        console.log(`Order ${i + 1}: ${o.date}`)
-      })
-    }
 
     if (filterDate) {
-      console.log('Filtering by date:', filterDate)
       filtered = filtered.filter(order => {
         // Parse order date (format: DD/MM/YY)
         const [day, month, year] = order.date.split('/')
@@ -146,50 +133,29 @@ export default function OrdersManagement() {
         // Convert filter year to Buddhist era for comparison
         const filterBuddhistYear = filterYear + 543
 
-        const matches = orderDay === filterDay && 
-                       orderMonth === filterMonth && 
-                       orderYear === filterBuddhistYear
-        
-        console.log(`Order ${order.date}: day=${orderDay}, month=${orderMonth}, year=${orderYear}`)
-        console.log(`Filter: day=${filterDay}, month=${filterMonth}, year=${filterYear} (CE) -> ${filterBuddhistYear} (BE), matches=${matches}`)
-        
-        return matches
+        return orderDay === filterDay && 
+               orderMonth === filterMonth && 
+               orderYear === filterBuddhistYear
       })
     }
 
     if (filterMonth) {
-      console.log('Filtering by month:', filterMonth)
       filtered = filtered.filter(order => {
         const [, month] = order.date.split('/')
         const orderMonth = parseInt(month)
-        const matches = orderMonth === parseInt(filterMonth)
-        console.log(`Order ${order.date}: month=${orderMonth}, matches=${matches}`)
-        return matches
+        return orderMonth === parseInt(filterMonth)
       })
     }
 
     if (filterYear) {
-      console.log('Filtering by year:', filterYear)
       filtered = filtered.filter(order => {
         const [, , year] = order.date.split('/')
         const orderYear = parseInt(year) + 2500 // Convert YY to YYYY
         const buddhistYear = parseInt(filterYear)
-        const matches = orderYear === buddhistYear
-        console.log(`Order ${order.date}: year=${orderYear}, buddhistYear=${buddhistYear}, matches=${matches}`)
-        return matches
+        return orderYear === buddhistYear
       })
     }
 
-    if (filterDishShape) {
-      console.log('Filtering by dish shape:', filterDishShape)
-      filtered = filtered.filter(order => {
-        const matches = order.product === filterDishShape
-        console.log(`Order ${order.product}: matches=${matches}`)
-        return matches
-      })
-    }
-
-    console.log('Filtered orders:', filtered.length)
     setFilteredOrders(filtered)
   }
 
@@ -197,7 +163,6 @@ export default function OrdersManagement() {
     setFilterDate("")
     setFilterMonth("")
     setFilterYear("")
-    setFilterDishShape("")
     setFilteredOrders(orders)
   }
 
@@ -215,6 +180,37 @@ export default function OrdersManagement() {
     }
     return years
   }
+
+  // Generate month options dynamically
+  const generateMonthOptions = () => {
+    const months = [
+      { value: "1", label: "มกราคม" },
+      { value: "2", label: "กุมภาพันธ์" },
+      { value: "3", label: "มีนาคม" },
+      { value: "4", label: "เมษายน" },
+      { value: "5", label: "พฤษภาคม" },
+      { value: "6", label: "มิถุนายน" },
+      { value: "7", label: "กรกฎาคม" },
+      { value: "8", label: "สิงหาคม" },
+      { value: "9", label: "กันยายน" },
+      { value: "10", label: "ตุลาคม" },
+      { value: "11", label: "พฤศจิกายน" },
+      { value: "12", label: "ธันวาคม" }
+    ]
+    
+    return months.map(month => (
+      <option key={month.value} value={month.value}>
+        {month.label}
+      </option>
+    ))
+  }
+
+  // Auto-apply filter when filter values change
+  useEffect(() => {
+    if (orders.length > 0) {
+      applyFilter()
+    }
+  }, [filterDate, filterMonth, filterYear, orders])
 
   const handleAddOrder = () => {
     setNewOrderDate("")
@@ -234,44 +230,56 @@ export default function OrdersManagement() {
   }
 
   const handleSaveOrder = async () => {
-    if (!newOrderProduct || !newOrderQuantity) {
-      setError("กรุณากรอกข้อมูลให้ครบถ้วน")
-      return
-    }
+    if (!newOrderProduct || !newOrderQuantity) return
 
     try {
-      const quantity = parseInt(newOrderQuantity)
-      const materialCost = calculateMaterialCost(newOrderProduct, quantity)
+      // Use current date if date field is empty
+      const orderDate = newOrderDate || getCurrentThaiDate()
 
-      const newOrder = {
-        date: newOrderDate || getCurrentThaiDate(),
-        product: newOrderProduct,
-        orderedQuantity: `${quantity} จาน`,
-        materialCost,
-        electricityCost: 0,
-        totalCost: materialCost,
-        sellingPrice: 0,
-        remainingQuantity: `${quantity} จาน`,
-        qcQuantity: "",
-        status: "กำลังผลิต",
-        lot: `LOT${Date.now()}`,
+      // Generate a new lot number (A + next number)
+      let newLotNumber = "A1" // Default for first order
+
+      if (orders.length > 0) {
+        const maxLotNumber = orders
+          .filter((order) => order.lot.startsWith("A"))
+          .map((order) => Number.parseInt(order.lot.substring(1)))
+          .reduce((max, num) => Math.max(max, num), 0)
+
+        newLotNumber = `A${maxLotNumber + 1}`
       }
 
+      const newOrder: Omit<Order, "id"> = {
+        lot: newLotNumber,
+        date: orderDate,
+        product: newOrderProduct,
+        orderedQuantity: `${newOrderQuantity} จาน`,
+        remainingQuantity: "",
+        qcQuantity: "",
+        electricityCost: 0,
+        materialCost: 0,
+        totalCost: 0,
+        sellingPrice: 0,
+        status: "กำลังผลิต",
+        machineId: "",
+      }
+
+      // Add the new order to Firestore
       const orderId = await addOrderService(newOrder)
-      const orderWithId = { id: orderId, ...newOrder }
+
+      // Add the order to local state with the new ID
+      const orderWithId: Order = {
+        id: orderId,
+        ...newOrder,
+      }
 
       const updatedOrders = [orderWithId, ...orders]
       setOrders(updatedOrders)
       setFilteredOrders(updatedOrders)
-
-      setSuccessMessage("เพิ่มออเดอร์สำเร็จ")
       setIsAddOrderModalOpen(false)
-      setNewOrderDate("")
-      setNewOrderProduct("")
-      setNewOrderQuantity("")
+      setSuccessMessage(`เพิ่มออเดอร์ ${newLotNumber} สำเร็จ`)
     } catch (error) {
-      console.error("Error adding order:", error)
-      setError("ไม่สามารถเพิ่มออเดอร์ได้ กรุณาลองใหม่อีกครั้ง")
+      console.error("Error saving order:", error)
+      setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
     }
   }
 
@@ -290,11 +298,14 @@ export default function OrdersManagement() {
 
       if (updatedOrderData) {
         // Update the order in local state with updated data from backend
-        setOrders(orders.map((order) => (order.id === updatedOrderData.id ? updatedOrderData : order)))
-        setFilteredOrders(orders.map((order) => (order.id === updatedOrderData.id ? updatedOrderData : order)))
+        const updatedOrders = orders.map((order) => (order.id === updatedOrderData.id ? updatedOrderData : order))
+        setOrders(updatedOrders)
+        setFilteredOrders(updatedOrders)
       } else {
         // Fallback to using passed updatedOrder if backend data not available
-        setOrders(orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)))
+        const updatedOrders = orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order))
+        setOrders(updatedOrders)
+        setFilteredOrders(updatedOrders)
       }
 
       setSuccessMessage("อัปเดตออเดอร์สำเร็จ")
@@ -318,8 +329,9 @@ export default function OrdersManagement() {
     if (selectedOrderId) {
       try {
         await deleteOrderService(selectedOrderId)
-        setOrders(orders.filter((order) => order.id !== selectedOrderId))
-        setFilteredOrders(orders.filter((order) => order.id !== selectedOrderId))
+        const updatedOrders = orders.filter((order) => order.id !== selectedOrderId)
+        setOrders(updatedOrders)
+        setFilteredOrders(updatedOrders)
         setSuccessMessage("ลบออเดอร์สำเร็จ")
 
         // Refresh material data if context is available
@@ -362,7 +374,6 @@ export default function OrdersManagement() {
 
       await updateOrderService(updatedOrder.id, orderWithUpdatedCosts)
       setOrders(orders.map((order) => (order.id === updatedOrder.id ? orderWithUpdatedCosts : order)))
-      setFilteredOrders(orders.map((order) => (order.id === updatedOrder.id ? orderWithUpdatedCosts : order)))
       setSuccessMessage("อัปเดตราคาขายสำเร็จ")
     } catch (error) {
       console.error("Error updating selling price:", error)
@@ -393,7 +404,6 @@ export default function OrdersManagement() {
           totalCost,
         }
         setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
-        setFilteredOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
         setSuccessMessage("เพิ่มจำนวนการผลิตสำเร็จ")
 
         // Refresh material data if context is available
@@ -441,7 +451,6 @@ export default function OrdersManagement() {
           totalCost,
         }
         setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
-        setFilteredOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
         setSuccessMessage("อัปเดตค่าไฟการผลิตสำเร็จ")
       } else {
         setError("ไม่สามารถอัปเดตค่าไฟการผลิตได้")
@@ -535,7 +544,7 @@ export default function OrdersManagement() {
                   className={`p-2 rounded-md flex items-center ${
                     isFilterOpen ? 'bg-blue-200' : 'bg-blue-100 hover:bg-blue-200'
                   }`}
-                  title="กรองข้อมูล"
+                  title="กรองออเดอร์"
                 >
                   <Filter className="h-5 w-5" />
                 </button>
@@ -553,79 +562,50 @@ export default function OrdersManagement() {
             {/* Filter Section */}
             {isFilterOpen && (
               <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                  <div className="flex flex-col space-y-1">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
                     <label className="text-sm font-medium text-gray-700">วันที่:</label>
                     <input
                       type="date"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                     />
                   </div>
-                  <div className="flex flex-col space-y-1">
+                  <div className="flex items-center space-x-2">
                     <label className="text-sm font-medium text-gray-700">เดือน:</label>
                     <select
                       value={filterMonth}
                       onChange={(e) => setFilterMonth(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                     >
                       <option value="">ทั้งหมด</option>
-                      <option value="1">มกราคม</option>
-                      <option value="2">กุมภาพันธ์</option>
-                      <option value="3">มีนาคม</option>
-                      <option value="4">เมษายน</option>
-                      <option value="5">พฤษภาคม</option>
-                      <option value="6">มิถุนายน</option>
-                      <option value="7">กรกฎาคม</option>
-                      <option value="8">สิงหาคม</option>
-                      <option value="9">กันยายน</option>
-                      <option value="10">ตุลาคม</option>
-                      <option value="11">พฤศจิกายน</option>
-                      <option value="12">ธันวาคม</option>
+                      {generateMonthOptions()}
                     </select>
                   </div>
-                  <div className="flex flex-col space-y-1">
+                  <div className="flex items-center space-x-2">
                     <label className="text-sm font-medium text-gray-700">ปี:</label>
                     <select
                       value={filterYear}
                       onChange={(e) => setFilterYear(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                     >
                       <option value="">ทั้งหมด</option>
                       {generateYearOptions()}
                     </select>
                   </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-gray-700">รูปทรงจาน:</label>
-                    <select
-                      value={filterDishShape}
-                      onChange={(e) => setFilterDishShape(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    >
-                      <option value="">ทั้งหมด</option>
-                      <option value="จานสี่เหลี่ยม">จานสี่เหลี่ยม</option>
-                      <option value="จานวงกลม">จานวงกลม</option>
-                      <option value="จานหัวใจ">จานหัวใจ</option>
-                    </select>
+                  <div className="text-xs text-gray-500">
+                    {filterDate || filterMonth || filterYear ? 
+                      `กรองแล้ว: ${filteredOrders.length} รายการ` : 
+                      `ทั้งหมด: ${orders.length} รายการ`
+                    }
                   </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-gray-700 opacity-0">ปุ่ม:</label>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={applyFilter}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex-1"
-                      >
-                        กรอง
-                      </button>
-                      <button
-                        onClick={clearFilter}
-                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex-1"
-                      >
-                        ล้าง
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    onClick={clearFilter}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 rounded-md text-sm"
+                  >
+                    ล้าง
+                  </button>
                 </div>
               </div>
             )}

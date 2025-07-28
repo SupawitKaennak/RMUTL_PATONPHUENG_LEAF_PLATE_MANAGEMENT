@@ -26,10 +26,10 @@ export default function MaterialsManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [filterDate, setFilterDate] = useState("")
-  const [filterMonth, setFilterMonth] = useState("")
-  const [filterYear, setFilterYear] = useState("")
+  const [isHistoryFilterOpen, setIsHistoryFilterOpen] = useState(false)
+  const [historyFilterDate, setHistoryFilterDate] = useState("")
+  const [historyFilterMonth, setHistoryFilterMonth] = useState("")
+  const [historyFilterYear, setHistoryFilterYear] = useState("")
 
   // Fetch materials and history on component mount
   useEffect(() => {
@@ -76,26 +76,14 @@ export default function MaterialsManagement() {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
-  const toggleFilter = () => {
-    setIsFilterOpen(!isFilterOpen)
+  const toggleHistoryFilter = () => {
+    setIsHistoryFilterOpen(!isHistoryFilterOpen)
   }
 
-  const applyFilter = () => {
+  const applyHistoryFilter = () => {
     let filtered = [...materialHistory]
-    
-    console.log('Applying filter with:', { filterDate, filterMonth, filterYear })
-    console.log('Total material history:', materialHistory.length)
-    
-    // Show sample material history dates for debugging
-    if (materialHistory.length > 0) {
-      console.log('Sample material history dates:')
-      materialHistory.slice(0, 3).forEach((h, i) => {
-        console.log(`History ${i + 1}: ${h.date}`)
-      })
-    }
 
-    if (filterDate) {
-      console.log('Filtering by date:', filterDate)
+    if (historyFilterDate) {
       filtered = filtered.filter(history => {
         // Parse history date (format: DD/MM/YY)
         const [day, month, year] = history.date.split('/')
@@ -104,7 +92,7 @@ export default function MaterialsManagement() {
         const historyYear = parseInt(year) + 2500 // Convert YY to YYYY (assuming 25xx)
 
         // Parse filter date (format: YYYY-MM-DD from date picker)
-        const filterDateObj = new Date(filterDate)
+        const filterDateObj = new Date(historyFilterDate)
         const filterDay = filterDateObj.getDate()
         const filterMonth = filterDateObj.getMonth() + 1
         const filterYear = filterDateObj.getFullYear()
@@ -112,48 +100,36 @@ export default function MaterialsManagement() {
         // Convert filter year to Buddhist era for comparison
         const filterBuddhistYear = filterYear + 543
 
-        const matches = historyDay === filterDay && 
-                       historyMonth === filterMonth && 
-                       historyYear === filterBuddhistYear
-        
-        console.log(`History ${history.date}: day=${historyDay}, month=${historyMonth}, year=${historyYear}`)
-        console.log(`Filter: day=${filterDay}, month=${filterMonth}, year=${filterYear} (CE) -> ${filterBuddhistYear} (BE), matches=${matches}`)
-        
-        return matches
+        return historyDay === filterDay && 
+               historyMonth === filterMonth && 
+               historyYear === filterBuddhistYear
       })
     }
 
-    if (filterMonth) {
-      console.log('Filtering by month:', filterMonth)
+    if (historyFilterMonth) {
       filtered = filtered.filter(history => {
         const [, month] = history.date.split('/')
         const historyMonth = parseInt(month)
-        const matches = historyMonth === parseInt(filterMonth)
-        console.log(`History ${history.date}: month=${historyMonth}, matches=${matches}`)
-        return matches
+        return historyMonth === parseInt(historyFilterMonth)
       })
     }
 
-    if (filterYear) {
-      console.log('Filtering by year:', filterYear)
+    if (historyFilterYear) {
       filtered = filtered.filter(history => {
         const [, , year] = history.date.split('/')
         const historyYear = parseInt(year) + 2500 // Convert YY to YYYY
-        const buddhistYear = parseInt(filterYear)
-        const matches = historyYear === buddhistYear
-        console.log(`History ${history.date}: year=${historyYear}, buddhistYear=${buddhistYear}, matches=${matches}`)
-        return matches
+        const buddhistYear = parseInt(historyFilterYear)
+        return historyYear === buddhistYear
       })
     }
 
-    console.log('Filtered material history:', filtered.length)
     setFilteredMaterialHistory(filtered)
   }
 
-  const clearFilter = () => {
-    setFilterDate("")
-    setFilterMonth("")
-    setFilterYear("")
+  const clearHistoryFilter = () => {
+    setHistoryFilterDate("")
+    setHistoryFilterMonth("")
+    setHistoryFilterYear("")
     setFilteredMaterialHistory(materialHistory)
   }
 
@@ -171,6 +147,37 @@ export default function MaterialsManagement() {
     }
     return years
   }
+
+  // Generate month options dynamically
+  const generateMonthOptions = () => {
+    const months = [
+      { value: "1", label: "มกราคม" },
+      { value: "2", label: "กุมภาพันธ์" },
+      { value: "3", label: "มีนาคม" },
+      { value: "4", label: "เมษายน" },
+      { value: "5", label: "พฤษภาคม" },
+      { value: "6", label: "มิถุนายน" },
+      { value: "7", label: "กรกฎาคม" },
+      { value: "8", label: "สิงหาคม" },
+      { value: "9", label: "กันยายน" },
+      { value: "10", label: "ตุลาคม" },
+      { value: "11", label: "พฤศจิกายน" },
+      { value: "12", label: "ธันวาคม" }
+    ]
+    
+    return months.map(month => (
+      <option key={month.value} value={month.value}>
+        {month.label}
+      </option>
+    ))
+  }
+
+  // Auto-apply filter when filter values change
+  useEffect(() => {
+    if (materialHistory.length > 0) {
+      applyHistoryFilter()
+    }
+  }, [historyFilterDate, historyFilterMonth, historyFilterYear, materialHistory])
 
   const handleAddMaterial = () => {
     setIsAddModalOpen(true)
@@ -225,7 +232,9 @@ export default function MaterialsManagement() {
           ...historyEntry,
         }
 
-        setMaterialHistory([historyWithId, ...materialHistory])
+        const updatedHistory = [historyWithId, ...materialHistory]
+        setMaterialHistory(updatedHistory)
+        setFilteredMaterialHistory(updatedHistory)
       }
 
       // ปิด modal หลังจากบันทึกข้อมูลเสร็จ
@@ -269,7 +278,9 @@ export default function MaterialsManagement() {
             id: historyId,
             ...historyEntry,
           }
-          setMaterialHistory([historyWithId, ...materialHistory])
+          const updatedHistory = [historyWithId, ...materialHistory]
+          setMaterialHistory(updatedHistory)
+          setFilteredMaterialHistory(updatedHistory)
         }
 
         // ลบข้อมูลจาก Firestore
@@ -290,7 +301,7 @@ export default function MaterialsManagement() {
   }
 
   const hasMaterials = materials.length > 0
-  const hasMaterialHistory = filteredMaterialHistory.length > 0
+  const hasMaterialHistory = materialHistory.length > 0
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -435,11 +446,11 @@ export default function MaterialsManagement() {
                 <div className="flex items-center space-x-2">
                   <h2 className="text-xl font-semibold bg-yellow-100 p-2 rounded-md">ประวัติการจัดการวัตถุดิบ</h2>
                   <button
-                    onClick={toggleFilter}
+                    onClick={toggleHistoryFilter}
                     className={`p-2 rounded-md flex items-center ${
-                      isFilterOpen ? 'bg-yellow-200' : 'bg-yellow-100 hover:bg-yellow-200'
+                      isHistoryFilterOpen ? 'bg-yellow-200' : 'bg-yellow-100 hover:bg-yellow-200'
                     }`}
-                    title="กรองข้อมูล"
+                    title="กรองประวัติ"
                   >
                     <Filter className="h-5 w-5" />
                   </button>
@@ -447,69 +458,53 @@ export default function MaterialsManagement() {
                 <div className="w-32"></div> {/* Spacer to match the width of the "เพิ่มวัตถุดิบ" button */}
               </div>
 
-              {/* Filter Section */}
-              {isFilterOpen && (
+              {/* History Filter Section */}
+              {isHistoryFilterOpen && (
                 <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="flex flex-col space-y-1">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
                       <label className="text-sm font-medium text-gray-700">วันที่:</label>
                       <input
                         type="date"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                        value={historyFilterDate}
+                        onChange={(e) => setHistoryFilterDate(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                       />
                     </div>
-                    <div className="flex flex-col space-y-1">
+                    <div className="flex items-center space-x-2">
                       <label className="text-sm font-medium text-gray-700">เดือน:</label>
                       <select
-                        value={filterMonth}
-                        onChange={(e) => setFilterMonth(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                        value={historyFilterMonth}
+                        onChange={(e) => setHistoryFilterMonth(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                       >
                         <option value="">ทั้งหมด</option>
-                        <option value="1">มกราคม</option>
-                        <option value="2">กุมภาพันธ์</option>
-                        <option value="3">มีนาคม</option>
-                        <option value="4">เมษายน</option>
-                        <option value="5">พฤษภาคม</option>
-                        <option value="6">มิถุนายน</option>
-                        <option value="7">กรกฎาคม</option>
-                        <option value="8">สิงหาคม</option>
-                        <option value="9">กันยายน</option>
-                        <option value="10">ตุลาคม</option>
-                        <option value="11">พฤศจิกายน</option>
-                        <option value="12">ธันวาคม</option>
+                        {generateMonthOptions()}
                       </select>
                     </div>
-                    <div className="flex flex-col space-y-1">
+                    <div className="flex items-center space-x-2">
                       <label className="text-sm font-medium text-gray-700">ปี:</label>
                       <select
-                        value={filterYear}
-                        onChange={(e) => setFilterYear(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                        value={historyFilterYear}
+                        onChange={(e) => setHistoryFilterYear(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-1 text-sm"
                       >
                         <option value="">ทั้งหมด</option>
                         {generateYearOptions()}
                       </select>
                     </div>
-                    <div className="flex flex-col space-y-1">
-                      <label className="text-sm font-medium text-gray-700 opacity-0">ปุ่ม:</label>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={applyFilter}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex-1"
-                        >
-                          กรอง
-                        </button>
-                        <button
-                          onClick={clearFilter}
-                          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex-1"
-                        >
-                          ล้าง
-                        </button>
-                      </div>
+                    <div className="text-xs text-gray-500">
+                      {historyFilterDate || historyFilterMonth || historyFilterYear ? 
+                        `กรองแล้ว: ${filteredMaterialHistory.length} รายการ` : 
+                        `ทั้งหมด: ${materialHistory.length} รายการ`
+                      }
                     </div>
+                    <button
+                      onClick={clearHistoryFilter}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 rounded-md text-sm"
+                    >
+                      ล้าง
+                    </button>
                   </div>
                 </div>
               )}
