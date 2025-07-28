@@ -36,6 +36,21 @@ export async function POST(request: NextRequest) {
         }
 
         await addDoc(materialsCollection, newMaterial)
+        
+        // เพิ่มประวัติการเพิ่มวัตถุดิบใหม่
+        const materialHistoryCollection = collection(db, "materialHistory")
+        await addDoc(materialHistoryCollection, {
+          action: "เพิ่ม",
+          date: new Date().toLocaleDateString("th-TH", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          }),
+          name: materialName,
+          quantity: quantity,
+          unit: "ใบ",
+        })
+        
         success = true
         message = `Created new material ${materialName} with quantity: ${quantity}`
       } else {
@@ -62,12 +77,36 @@ export async function POST(request: NextRequest) {
       if (action === "increase" || (action === "decrease" && materialData.quantity >= quantity)) {
         const docRef = doc(db, "materials", materialDoc.id)
         await setDoc(docRef, { quantity: newQuantity }, { merge: true })
+        
+        // เพิ่มประวัติการจัดการวัตถุดิบ
+        const materialHistoryCollection = collection(db, "materialHistory")
+        await addDoc(materialHistoryCollection, {
+          action: action === "increase" ? "เพิ่ม" : "ลบ",
+          date: new Date().toLocaleDateString("th-TH", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          }),
+          name: materialName,
+          quantity: quantity,
+          unit: materialData.unit || "ใบ",
+        })
+        
         success = true
         message = `Successfully ${action}d ${materialName} by ${quantity}, new quantity: ${newQuantity}`
       }
     }
 
-    return NextResponse.json({ success, message })
+    // ส่งข้อมูลราคากลับไปด้วย
+    const materialData = snapshot.empty ? null : snapshot.docs[0].data() as Material
+    return NextResponse.json({ 
+      success, 
+      message,
+      data: materialData ? {
+        pricePerUnit: materialData.pricePerUnit,
+        unit: materialData.unit
+      } : null
+    })
   } catch (error) {
     console.error("Error updating material quantity:", error)
     return NextResponse.json({ success: false, error: "Failed to update material quantity" }, { status: 500 })

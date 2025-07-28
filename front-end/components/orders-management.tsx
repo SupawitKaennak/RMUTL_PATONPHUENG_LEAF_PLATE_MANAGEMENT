@@ -56,6 +56,21 @@ export default function OrdersManagement() {
   // Get dish recipes for display
   const dishRecipes = getDishRecipes()
 
+  // Function to calculate material cost
+  const calculateMaterialCost = (productType: string, quantity: number): number => {
+    const materialPerDish = dishRecipes[productType as keyof typeof dishRecipes] || 0
+    const materialNeeded = materialPerDish * quantity
+    
+    // ดึงราคาจาก material context
+    const materialPrice = materialContext?.materials?.find(m => m.name === "ใบตองตึง")?.pricePerUnit || 0.20
+    return materialNeeded * materialPrice
+  }
+
+  // Function to calculate total cost
+  const calculateTotalCost = (materialCost: number, electricityCost: number): number => {
+    return materialCost + electricityCost
+  }
+
   // Fetch orders on component mount
   useEffect(() => {
     const fetchOrders = async () => {
@@ -229,8 +244,19 @@ export default function OrdersManagement() {
 
   const handleSaveSellingPrice = async (updatedOrder: Order) => {
     try {
-      await updateOrderService(updatedOrder.id, updatedOrder)
-      setOrders(orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)))
+      // Calculate new material cost and total cost
+      const quantity = updatedOrder.remainingQuantity ? parseInt(updatedOrder.remainingQuantity.replace(" จาน", "")) : 0
+      const materialCost = calculateMaterialCost(updatedOrder.product, quantity)
+      const totalCost = calculateTotalCost(materialCost, updatedOrder.electricityCost)
+
+      const orderWithUpdatedCosts = {
+        ...updatedOrder,
+        materialCost,
+        totalCost,
+      }
+
+      await updateOrderService(updatedOrder.id, orderWithUpdatedCosts)
+      setOrders(orders.map((order) => (order.id === updatedOrder.id ? orderWithUpdatedCosts : order)))
       setSuccessMessage("อัปเดตราคาขายสำเร็จ")
     } catch (error) {
       console.error("Error updating selling price:", error)
@@ -248,10 +274,17 @@ export default function OrdersManagement() {
       const result = await addProductionQuantity(selectedOrderId, productionQuantity, order.product)
 
       if (result.success) {
+        // Calculate new material cost
+        const quantity = parseInt(productionQuantity)
+        const materialCost = calculateMaterialCost(order.product, quantity)
+        const totalCost = calculateTotalCost(materialCost, order.electricityCost)
+
         // Update the order in local state
         const updatedOrder = {
           ...order,
           remainingQuantity: `${productionQuantity} จาน`,
+          materialCost,
+          totalCost,
         }
         setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
         setSuccessMessage("เพิ่มจำนวนการผลิตสำเร็จ")
@@ -278,21 +311,27 @@ export default function OrdersManagement() {
     setIsSelectMachineModalOpen(true)
   }
 
-  const handleSaveMachineSelection = async (electricityCost: number, totalElectricityCost: number) => {
+  const handleSaveMachineSelection = async (costPerUnit: number, totalElectricityCost: number) => {
     if (!selectedOrderId) return
 
     try {
       const order = orders.find((order) => order.id === selectedOrderId)
       if (!order) return
 
-      const success = await updateElectricityCost(selectedOrderId, electricityCost, order.materialCost)
+      const success = await updateElectricityCost(selectedOrderId, totalElectricityCost, order.materialCost)
 
       if (success) {
+        // Calculate new total cost
+        const quantity = order.remainingQuantity ? parseInt(order.remainingQuantity.replace(" จาน", "")) : 0
+        const materialCost = calculateMaterialCost(order.product, quantity)
+        const totalCost = calculateTotalCost(materialCost, totalElectricityCost)
+
         // Update the order in local state
         const updatedOrder = {
           ...order,
-          electricityCost,
-          totalCost: electricityCost + order.materialCost,
+          electricityCost: totalElectricityCost,
+          materialCost,
+          totalCost,
         }
         setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
         setSuccessMessage("อัปเดตค่าไฟการผลิตสำเร็จ")
@@ -380,12 +419,14 @@ export default function OrdersManagement() {
 
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">แผนการผลิต (ออเดอร์)</h2>
-              <button
-                onClick={handleAddOrder}
-                className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
-              >
-                เพิ่มออเดอร์
-              </button>
+              {hasOrders && (
+                <button
+                  onClick={handleAddOrder}
+                  className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
+                >
+                  เพิ่มออเดอร์
+                </button>
+              )}
             </div>
 
             {loading ? (
@@ -397,7 +438,7 @@ export default function OrdersManagement() {
               </div>
             ) : (
               <Card className="overflow-hidden">
-                <div className="overflow-x-auto max-h-[660px] overflow-y-auto">
+                <div className="overflow-x-auto max-h-[850px] overflow-y-auto">
                   {hasOrders ? (
                     <table className="w-full">
                       <thead className="bg-blue-100">
@@ -473,10 +514,19 @@ export default function OrdersManagement() {
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {order.materialCost.toFixed(2)} บาท
+                              {(() => {
+                                const quantity = order.remainingQuantity ? parseInt(order.remainingQuantity.replace(" จาน", "")) : 0
+                                const materialCost = calculateMaterialCost(order.product, quantity)
+                                return `${materialCost.toFixed(2)} บาท`
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {order.totalCost.toFixed(2)} บาท
+                              {(() => {
+                                const quantity = order.remainingQuantity ? parseInt(order.remainingQuantity.replace(" จาน", "")) : 0
+                                const materialCost = calculateMaterialCost(order.product, quantity)
+                                const totalCost = calculateTotalCost(materialCost, order.electricityCost)
+                                return `${totalCost.toFixed(2)} บาท`
+                              })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {order.sellingPrice > 0 ? (

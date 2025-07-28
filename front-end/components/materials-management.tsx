@@ -240,12 +240,14 @@ export default function MaterialsManagement() {
                     ) : null}
                   </button>
                 </div>
-                <button
-                  onClick={handleAddMaterial}
-                  className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
-                >
-                  <span>เพิ่มวัตถุดิบ</span>
-                </button>
+                {hasMaterials && (
+                  <button
+                    onClick={handleAddMaterial}
+                    className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
+                  >
+                    <span>เพิ่มวัตถุดิบ</span>
+                  </button>
+                )}
               </div>
 
               {loading ? (
@@ -258,7 +260,7 @@ export default function MaterialsManagement() {
               ) : (
                 <Card className="overflow-hidden">
                   {hasMaterials ? (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[850px] overflow-y-auto">
                       <table className="w-full">
                         <thead className="bg-blue-100">
                           <tr>
@@ -311,7 +313,13 @@ export default function MaterialsManagement() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-gray-500">ไม่มีข้อมูลวัตถุดิบ</p>
+                      <p className="text-gray-500 mb-4">ไม่มีข้อมูลวัตถุดิบ</p>
+                      <button
+                        onClick={handleAddMaterial}
+                        className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+                      >
+                        เพิ่มวัตถุดิบแรก
+                      </button>
                     </div>
                   )}
                 </Card>
@@ -336,7 +344,7 @@ export default function MaterialsManagement() {
               ) : (
                 <Card className="overflow-hidden">
                   {hasMaterialHistory ? (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[850px] overflow-y-auto">
                       <table className="w-full">
                         <thead className="bg-blue-100">
                           <tr>
@@ -362,7 +370,13 @@ export default function MaterialsManagement() {
                             <tr key={history.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.date}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                <span className={`font-medium ${history.action === 'ลบ' ? 'text-red-600' : 'text-green-600'}`}>
+                                <span className={`font-medium ${
+                                  history.action === 'ลบ' ? 'text-red-600' : 
+                                  history.action === 'เพิ่ม' ? 'text-green-600' :
+                                  history.action === 'นำไปใช้' ? 'text-orange-600' :
+                                  history.action === 'คืนวัตถุดิบ' ? 'text-blue-600' :
+                                  'text-gray-600'
+                                }`}>
                                   {history.action}
                                 </span>
                               </td>

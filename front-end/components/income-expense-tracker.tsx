@@ -189,12 +189,14 @@ export default function IncomeExpenseTracker() {
                 </button>
               </div>
 
-              <button
-                onClick={handleAddTransaction}
-                className="bg-teal-400 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
-              >
-                เพิ่มรายการ
-              </button>
+              {hasTransactions && (
+                <button
+                  onClick={handleAddTransaction}
+                  className="bg-teal-400 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
+                >
+                  เพิ่มรายการ
+                </button>
+              )}
             </div>
 
             {loading ? (
@@ -206,7 +208,7 @@ export default function IncomeExpenseTracker() {
               </div>
             ) : hasTransactions ? (
               <Card className="overflow-hidden">
-                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <div className="overflow-x-auto max-h-[850px] overflow-y-auto">
                   <TransactionTable
                     transactions={transactions}
                     onEdit={handleEditTransaction}

@@ -22,7 +22,7 @@ export const getMaterialHistory = async (): Promise<MaterialHistory[]> => {
   }
 }
 
-// Add material history entry
+// Add new material history entry
 export const addMaterialHistory = async (history: Omit<MaterialHistory, "id">): Promise<string> => {
   try {
     const docRef = await addDoc(materialHistoryCollection, history)

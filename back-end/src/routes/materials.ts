@@ -171,6 +171,20 @@ router.post("/quantity", async (req, res) => {
         }
 
         await db.collection("materials").add(newMaterial)
+        
+        // เพิ่มประวัติการเพิ่มวัตถุดิบใหม่
+        await db.collection("materialHistory").add({
+          action: "เพิ่ม",
+          date: new Date().toLocaleDateString("th-TH", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          }),
+          name: materialName,
+          quantity: quantity,
+          unit: "ใบ",
+        })
+        
         success = true
         message = `Created new material ${materialName} with quantity: ${quantity}`
       } else {
@@ -196,12 +210,35 @@ router.post("/quantity", async (req, res) => {
 
       if (action === "increase" || (action === "decrease" && materialData.quantity >= quantity)) {
         await materialDoc.ref.update({ quantity: newQuantity })
+        
+        // เพิ่มประวัติการจัดการวัตถุดิบ
+        await db.collection("materialHistory").add({
+          action: action === "increase" ? "เพิ่ม" : "ลบ",
+          date: new Date().toLocaleDateString("th-TH", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          }),
+          name: materialName,
+          quantity: quantity,
+          unit: materialData.unit || "ใบ",
+        })
+        
         success = true
         message = `Successfully ${action}d ${materialName} by ${quantity}, new quantity: ${newQuantity}`
       }
     }
 
-    res.json({ success, message })
+    // ส่งข้อมูลราคากลับไปด้วย
+    const materialData = snapshot.empty ? null : snapshot.docs[0].data() as Material
+    res.json({ 
+      success, 
+      message,
+      data: materialData ? {
+        pricePerUnit: materialData.pricePerUnit,
+        unit: materialData.unit
+      } : null
+    })
   } catch (error) {
     console.error("Error updating material quantity:", error)
     res.status(500).json({

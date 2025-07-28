@@ -27,10 +27,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, date, name, quantity, unit } = body
 
-    if (!action || !date || !name || !quantity || !unit) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 })
-    }
-
     const materialHistoryCollection = collection(db, "materialHistory")
     const docRef = await addDoc(materialHistoryCollection, {
       action,
@@ -40,10 +36,9 @@ export async function POST(request: NextRequest) {
       unit,
     })
 
-    return NextResponse.json({
-      success: true,
-      data: { id: docRef.id },
-      message: "Material history added successfully",
+    return NextResponse.json({ 
+      success: true, 
+      data: { id: docRef.id, action, date, name, quantity, unit } 
     })
   } catch (error) {
     console.error("Error adding material history:", error)

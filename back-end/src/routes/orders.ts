@@ -127,15 +127,30 @@ router.put("/:id", async (req, res) => {
 
       // ดึงราคาต่อหน่วยจริงจากฐานข้อมูลวัตถุดิบ
       const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
-      let materialCostPerLeaf = 1.0
+      let materialCostPerLeaf = 0.20
       if (!materialSnapshot.empty) {
         const materialDoc = materialSnapshot.docs[0]
         const currentQuantity = materialDoc.data().quantity
+        // ดึงราคาจาก database
+        materialCostPerLeaf = materialDoc.data().pricePerUnit || 0.20
 
         if (newQty < oldQty) {
           // คืนวัตถุดิบ
           await materialDoc.ref.update({
             quantity: currentQuantity + materialNeeded,
+          })
+          
+          // เพิ่มประวัติการคืนวัตถุดิบ
+          await db.collection("materialHistory").add({
+            action: "คืนวัตถุดิบ",
+            date: new Date().toLocaleDateString("th-TH", {
+              day: "2-digit",
+              month: "2-digit", 
+              year: "2-digit",
+            }),
+            name: "ใบตองตึง",
+            quantity: materialNeeded,
+            unit: "ใบ",
           })
         } else if (newQty > oldQty) {
           // ใช้วัตถุดิบเพิ่ม
@@ -148,13 +163,25 @@ router.put("/:id", async (req, res) => {
           await materialDoc.ref.update({
             quantity: currentQuantity - materialNeeded,
           })
+          
+          // เพิ่มประวัติการใช้วัตถุดิบ
+          await db.collection("materialHistory").add({
+            action: "นำไปใช้",
+            date: new Date().toLocaleDateString("th-TH", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "2-digit", 
+            }),
+            name: "ใบตองตึง",
+            quantity: materialNeeded,
+            unit: "ใบ",
+          })
         }
-        materialCostPerLeaf = materialDoc.data().pricePerUnit || 1.0
       }
 
       // คำนวณต้นทุนวัตถุดิบใหม่
       const totalMaterialNeeded = calculateMaterialNeeded(productType, newQty)
-      const totalMaterialCost = totalMaterialNeeded * (materialCostPerLeaf || 1.0)
+      const totalMaterialCost = totalMaterialNeeded * (materialCostPerLeaf || 0.20)
 
       updateObj.remainingQuantity = remainingQuantity
       updateObj.materialCost = totalMaterialCost
@@ -215,6 +242,19 @@ router.delete("/:id", async (req, res) => {
               const currentQuantity = materialDoc.data().quantity
               await materialDoc.ref.update({
                 quantity: currentQuantity + materialNeeded,
+              })
+              
+              // เพิ่มประวัติการคืนวัตถุดิบ
+              await db.collection("materialHistory").add({
+                action: "คืนวัตถุดิบ",
+                date: new Date().toLocaleDateString("th-TH", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
+                }),
+                name: "ใบตองตึง",
+                quantity: materialNeeded,
+                unit: "ใบ",
               })
             }
           }
@@ -285,8 +325,21 @@ router.post("/production", async (req, res) => {
       quantity: currentQuantity - materialNeeded,
     })
 
+    // เพิ่มประวัติการใช้วัตถุดิบ
+    await db.collection("materialHistory").add({
+      action: "นำไปใช้",
+      date: new Date().toLocaleDateString("th-TH", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      }),
+      name: "ใบตองตึง",
+      quantity: materialNeeded,
+      unit: "ใบ",
+    })
+
     // ดึงราคาต่อหน่วยจริงจากฐานข้อมูลวัตถุดิบ
-    const materialCostPerLeaf = materialDoc.data().pricePerUnit || 1.0
+    const materialCostPerLeaf = materialDoc.data().pricePerUnit || 0.20
     const totalMaterialCost = materialNeeded * materialCostPerLeaf
 
     // อัปเดตออเดอร์

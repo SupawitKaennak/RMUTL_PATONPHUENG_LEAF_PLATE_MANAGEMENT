@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
+import { MaterialProvider } from "@/components/material-provider"
 
 export const metadata: Metadata = {
   title: "Income Expense Tracker",
@@ -15,7 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <MaterialProvider>
+          {children}
+        </MaterialProvider>
+      </body>
     </html>
   )
 }

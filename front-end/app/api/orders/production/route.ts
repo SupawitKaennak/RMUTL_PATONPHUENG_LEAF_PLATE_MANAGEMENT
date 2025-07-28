@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // คำนวณต้นทุนวัตถุดิบ
-    const materialCostPerLeaf = 1.0
+    // คำนวณต้นทุนวัตถุดิบ - ดึงราคาจาก database
+    const materialCostPerLeaf = materialResult.data?.pricePerUnit || 0.20
     const totalMaterialCost = materialNeeded * materialCostPerLeaf
 
     // อัปเดตออเดอร์

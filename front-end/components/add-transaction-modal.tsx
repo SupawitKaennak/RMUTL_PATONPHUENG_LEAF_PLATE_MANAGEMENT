@@ -130,8 +130,8 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
                 <SelectItem value="ค่าไฟ" className="text-black focus:bg-gray-300 focus:text-black">
                   ค่าไฟ
                 </SelectItem>
-                <SelectItem value="ขายงาน" className="text-black focus:bg-gray-300 focus:text-black">
-                  ขายงาน
+                <SelectItem value="ขายจาน" className="text-black focus:bg-gray-300 focus:text-black">
+                  ขายจาน
                 </SelectItem>
                 <SelectItem value="ค่าจ้าง" className="text-black focus:bg-gray-300 focus:text-black">
                   ค่าจ้าง

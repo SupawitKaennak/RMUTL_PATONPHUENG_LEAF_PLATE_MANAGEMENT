@@ -4,7 +4,7 @@ import type { Material, MaterialHistory } from "@/types/material"
 export const getMaterials = async (): Promise<Material[]> => {
   try {
     const response = await apiClient.getMaterials()
-    return response.data || []
+    return (response.data as Material[]) || []
   } catch (error) {
     console.error("Error getting materials:", error)
     throw error
@@ -42,17 +42,17 @@ export const deleteMaterial = async (id: string): Promise<void> => {
 export const getMaterialHistory = async (): Promise<MaterialHistory[]> => {
   try {
     const response = await apiClient.getMaterialHistory()
-    return response.data || []
+    return (response.data as MaterialHistory[]) || []
   } catch (error) {
     console.error("Error getting material history:", error)
     throw error
   }
 }
 
-export const addMaterialHistory = async (history: Omit<MaterialHistory, "id">): Promise<string> => {
+export const addMaterialHistory = async (history: Omit<MaterialHistory, "id">): Promise<MaterialHistory> => {
   try {
     const response = await apiClient.addMaterialHistory(history)
-    return response.data?.id || ""
+    return response.data as MaterialHistory
   } catch (error) {
     console.error("Error adding material history:", error)
     throw error
