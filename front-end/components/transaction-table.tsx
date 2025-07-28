@@ -10,59 +10,59 @@ interface TransactionTableProps {
 
 export default function TransactionTable({ transactions, onEdit, onDelete }: TransactionTableProps) {
   return (
-    <table className="min-w-full divide-y divide-gray-200">
+    <table className="w-full">
       <thead className="bg-blue-100">
         <tr>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             ว/ด/ป
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             รายการ
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             ประเภท
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             จำนวนเงิน
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             จำนวน
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             รับ
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             จ่าย
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             หมายเหตุ
           </th>
-          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-            ACTION
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            การดำเนินการ
           </th>
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
         {transactions.map((transaction) => (
           <tr key={transaction.id} className="hover:bg-gray-50">
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{transaction.date}</td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{transaction.description}</td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{transaction.category}</td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{transaction.amount.toLocaleString()}</td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{transaction.quantity}</td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-green-600">
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{transaction.date}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.description}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.category}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.amount.toLocaleString()}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.quantity}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
               {transaction.isIncome ? transaction.amount.toLocaleString() : ""}
             </td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-red-600">
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
               {!transaction.isIncome ? transaction.amount.toLocaleString() : ""}
             </td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{transaction.notes}</td>
-            <td className="px-4 py-2 whitespace-nowrap text-sm">
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.notes}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <div className="flex space-x-2">
-                <button onClick={() => onEdit(transaction.id)} className="text-yellow-500 hover:text-yellow-700">
+                <button onClick={() => onEdit(transaction.id)} className="text-yellow-500 hover:text-blue-900">
                   แก้ไข
                 </button>
-                <button onClick={() => onDelete(transaction.id)} className="text-red-500 hover:text-red-700">
+                <button onClick={() => onDelete(transaction.id)} className="text-red-600 hover:text-red-900">
                   ลบ
                 </button>
               </div>

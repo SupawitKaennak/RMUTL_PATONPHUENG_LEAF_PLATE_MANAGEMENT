@@ -87,7 +87,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
                   กรัม
                 </SelectItem>
                 <SelectItem value="อัน" className="text-black focus:bg-gray-300 focus:text-black">
-                  อัน
+                  ถุง
                 </SelectItem>
               </SelectContent>
             </Select>

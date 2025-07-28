@@ -9,6 +9,7 @@ import EditTransactionModal from "./edit-transaction-modal"
 import DeleteConfirmationModal from "./delete-confirmation-modal"
 import type { Transaction } from "@/types/transaction"
 import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from "@/services/transaction-service"
+import { Card } from "./ui/card"
 
 export default function IncomeExpenseTracker() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -136,17 +137,6 @@ export default function IncomeExpenseTracker() {
 
   const hasTransactions = transactions.length > 0
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} activePage="รายรับ - รายจ่าย" onClose={() => setIsSidebarOpen(false)} />
@@ -195,42 +185,47 @@ export default function IncomeExpenseTracker() {
                   <RefreshCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
                   {isRefreshing ? (
                     <span className="ml-1 text-sm">กำลังรีเฟรช...</span>
-                  ) : (
-                    <span className="ml-1 text-sm">รีเฟรชข้อมูล</span>
-                  )}
+                  ) : null}
                 </button>
               </div>
 
-              {hasTransactions && (
-                <button
-                  onClick={handleAddTransaction}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
-                >
-                  เพิ่ม
-                </button>
-              )}
+              <button
+                onClick={handleAddTransaction}
+                className="bg-teal-400 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
+              >
+                เพิ่มรายการ
+              </button>
             </div>
 
-            {hasTransactions ? (
-              <div className="overflow-hidden rounded-lg shadow">
-                <div className="max-h-[600px] overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-600">กำลังโหลดข้อมูล...</p>
+                </div>
+              </div>
+            ) : hasTransactions ? (
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                   <TransactionTable
                     transactions={transactions}
                     onEdit={handleEditTransaction}
                     onDelete={handleDeleteTransaction}
                   />
                 </div>
-              </div>
+              </Card>
             ) : (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-gray-500 mb-4">ยังไม่มีรายการรายรับ-รายจ่าย</p>
-                <button
-                  onClick={handleAddTransaction}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
-                >
-                  เพิ่มรายการแรก
-                </button>
-              </div>
+              <Card className="overflow-hidden">
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">ยังไม่มีรายการรายรับ-รายจ่าย</p>
+                  <button
+                    onClick={handleAddTransaction}
+                    className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+                  >
+                    เพิ่มรายการแรก
+                  </button>
+                </div>
+              </Card>
             )}
           </div>
         </main>

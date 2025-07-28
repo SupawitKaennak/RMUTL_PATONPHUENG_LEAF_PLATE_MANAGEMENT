@@ -227,7 +227,7 @@ router.delete("/:id", async (req, res) => {
 
     res.json({
       success: true,
-      message: "Order deleted successfully and materials returned",
+      message: "ออเดอร์ถูกลบออกและวัตถุดิบถูกคืนคลัง",
     })
   } catch (error) {
     console.error("Error deleting order:", error)

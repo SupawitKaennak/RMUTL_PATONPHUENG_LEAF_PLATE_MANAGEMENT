@@ -12,13 +12,13 @@ interface DeleteMaterialModalProps {
 export default function DeleteMaterialModal({ isOpen, onClose, onConfirm }: DeleteMaterialModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-black text-white">
-        <DialogHeader className="bg-red-400 text-white p-4">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-white text-white">
+        <DialogHeader className="bg-red-400 text-whtie p-4">
           <DialogTitle className="text-center text-xl">ลบ</DialogTitle>
           <DialogDescription className="sr-only">ยืนยันการลบวัตถุดิบ</DialogDescription>
         </DialogHeader>
         <div className="p-8 text-center">
-          <h2 className="text-xl font-medium mb-8 text-white">คุณต้องการลบใช่มั้ย?</h2>
+          <h2 className="text-xl font-medium mb-8 text-black">คุณต้องการลบใช่มั้ย?</h2>
 
           <div className="flex justify-center gap-4">
             <Button onClick={onConfirm} className="bg-red-500 hover:bg-red-600 text-white px-8 py-2 rounded-md">

@@ -189,17 +189,6 @@ export default function MaterialsManagement() {
   const hasMaterials = materials.length > 0
   const hasMaterialHistory = materialHistory.length > 0
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} activePage="ข้อมูลวัตถุดิบ" onClose={() => setIsSidebarOpen(false)} />
@@ -248,110 +237,122 @@ export default function MaterialsManagement() {
                     <RefreshCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
                     {isRefreshing ? (
                       <span className="ml-1 text-sm">กำลังรีเฟรช...</span>
-                    ) : (
-                      <span className="ml-1 text-sm">รีเฟรชข้อมูล</span>
-                    )}
+                    ) : null}
                   </button>
                 </div>
-                {hasMaterials && (
-                  <button
-                    onClick={handleAddMaterial}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
-                  >
-                    เพิ่ม
-                  </button>
-                )}
+                <button
+                  onClick={handleAddMaterial}
+                  className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
+                >
+                  <span>เพิ่มวัตถุดิบ</span>
+                </button>
               </div>
 
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-2 text-sm text-gray-600">กำลังโหลดข้อมูล...</p>
+                  </div>
+                </div>
+              ) : (
+                <Card className="overflow-hidden">
                   {hasMaterials ? (
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-blue-100">
-                        <tr>
-                          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                            ว/ด/ป
-                          </th>
-                          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                            วัตถุดิบ
-                          </th>
-                          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                            ปริมาณ
-                          </th>
-                          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                            หน่วย
-                          </th>
-                          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                            ราคาต่อหน่วย
-                          </th>
-                          <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                            ACTION
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {materials.map((material) => (
-                          <tr key={material.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{material.date}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{material.name}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-                              {material.quantity.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{material.unit}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-                              {material.pricePerUnit.toFixed(2)}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm">
-                              <button
-                                onClick={() => handleDeleteMaterial(material.id)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                ลบ
-                              </button>
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-blue-100">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ชื่อวัตถุดิบ
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              จำนวนคงเหลือ
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              หน่วย
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ราคาต่อหน่วย
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              วันที่อัปเดตล่าสุด
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              การดำเนินการ
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {materials.map((material) => (
+                            <tr key={material.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {material.name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {material.quantity.toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{material.unit}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {material.pricePerUnit ? `${material.pricePerUnit.toFixed(2)} บาท` : "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{material.date}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button
+                                  onClick={() => handleDeleteMaterial(material.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  ลบ
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   ) : (
-                    <div className="p-8 text-center">
-                      <p className="text-gray-500 mb-4">ยังไม่มีรายการวัตถุดิบ</p>
-                      <button
-                        onClick={handleAddMaterial}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
-                      >
-                        เพิ่มวัตถุดิบแรก
-                      </button>
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">ไม่มีข้อมูลวัตถุดิบ</p>
                     </div>
                   )}
-                </div>
-              </Card>
+                </Card>
+              )}
             </div>
 
             {/* Material History */}
-            <div>
-              <h2 className="text-xl font-semibold bg-yellow-100 p-2 rounded-md mb-4">ประวัติการเพิ่ม/ลด/ลบวัตถุดิบ</h2>
-
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <div className="max-h-[600px] overflow-y-auto">
-                    {hasMaterialHistory ? (
-                      <table className="min-w-full divide-y divide-gray-200">
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center">
+                  <h2 className="text-xl font-semibold bg-yellow-100 p-2 rounded-md">ประวัติการจัดการวัตถุดิบ</h2>
+                </div>
+                <div className="w-32"></div> {/* Spacer to match the width of the "เพิ่มวัตถุดิบ" button */}
+              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+                    <p className="mt-2 text-sm text-gray-600">กำลังโหลดประวัติ...</p>
+                  </div>
+                </div>
+              ) : (
+                <Card className="overflow-hidden">
+                  {hasMaterialHistory ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
                         <thead className="bg-blue-100">
                           <tr>
-                            <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                              ประวัติ
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              วันที่
                             </th>
-                            <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                              ว/ด/ป
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              การดำเนินการ
                             </th>
-                            <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                              วัตถุดิบ
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ชื่อวัตถุดิบ
                             </th>
-                            <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                              ปริมาณ
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              จำนวน
                             </th>
-                            <th scope="col" className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               หน่วย
                             </th>
                           </tr>
@@ -359,44 +360,35 @@ export default function MaterialsManagement() {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {materialHistory.map((history) => (
                             <tr key={history.id} className="hover:bg-gray-50">
-                              <td
-                                className={`px-4 py-2 whitespace-nowrap text-sm ${
-                                  history.action === "เพิ่ม"
-                                    ? "text-green-500"
-                                    : history.action === "ลด"
-                                      ? "text-yellow-500"
-                                      : "text-red-500"
-                                }`}
-                              >
-                                {history.action}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.date}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <span className={`font-medium ${history.action === 'ลบ' ? 'text-red-600' : 'text-green-600'}`}>
+                                  {history.action}
+                                </span>
                               </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{history.date}</td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{history.name}</td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{history.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {history.quantity.toLocaleString()}
                               </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{history.unit}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{history.unit}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                    ) : (
-                      <div className="p-8 text-center">
-                        <p className="text-gray-500">ยังไม่มีประวัติการเพิ่ม/ลด/ลบวัตถุดิบ</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">ไม่มีประวัติการจัดการวัตถุดิบ</p>
+                    </div>
+                  )}
+                </Card>
+              )}
             </div>
           </div>
         </main>
       </div>
 
-      {/* Add Material Modal */}
       <AddMaterialModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={handleSaveMaterial} />
-
-      {/* Delete Material Modal */}
       <DeleteMaterialModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}

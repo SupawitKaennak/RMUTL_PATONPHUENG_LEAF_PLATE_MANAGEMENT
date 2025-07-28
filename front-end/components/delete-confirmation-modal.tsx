@@ -20,13 +20,13 @@ export default function DeleteConfirmationModal({
 }: DeleteConfirmationModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-black text-white">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-white text-white">
         <DialogHeader className="bg-red-400 text-white p-4">
           <DialogTitle className="text-center text-xl">{title}</DialogTitle>
           <DialogDescription className="sr-only">ยืนยันการลบรายการ</DialogDescription>
         </DialogHeader>
         <div className="p-8 text-center">
-          <h2 className="text-xl font-medium mb-8 text-white">{message}</h2>
+          <h2 className="text-xl font-medium mb-8 text-black">{message}</h2>
 
           <div className="flex justify-center gap-4">
             <Button onClick={onConfirm} className="bg-red-500 hover:bg-red-600 text-white px-8 py-2 rounded-md">

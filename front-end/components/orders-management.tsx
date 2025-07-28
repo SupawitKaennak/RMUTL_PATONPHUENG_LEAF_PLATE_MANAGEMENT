@@ -113,7 +113,7 @@ export default function OrdersManagement() {
       const orderDate = newOrderDate || getCurrentThaiDate()
 
       // Generate a new lot number (A + next number)
-      let newLotNumber = "A001" // Default for first order
+      let newLotNumber = "A1" // Default for first order
 
       if (orders.length > 0) {
         const maxLotNumber = orders
@@ -121,7 +121,7 @@ export default function OrdersManagement() {
           .map((order) => Number.parseInt(order.lot.substring(1)))
           .reduce((max, num) => Math.max(max, num), 0)
 
-        newLotNumber = `A${String(maxLotNumber + 1).padStart(3, "0")}`
+        newLotNumber = `A${maxLotNumber + 1}`
       }
 
       const newOrder: Omit<Order, "id"> = {
@@ -198,26 +198,20 @@ export default function OrdersManagement() {
   const confirmDeleteOrder = async () => {
     if (selectedOrderId) {
       try {
-        // Delete the order from Firestore (this will also return materials)
-        const result = await deleteOrderService(selectedOrderId)
+        await deleteOrderService(selectedOrderId)
+        setOrders(orders.filter((order) => order.id !== selectedOrderId))
+        setSuccessMessage("ลบออเดอร์สำเร็จ")
 
-        if (result.success) {
-          // Remove the order from local state
-          setOrders(orders.filter((order) => order.id !== selectedOrderId))
-          setIsDeleteModalOpen(false)
-          setSelectedOrderId(null)
-          setSuccessMessage(result.message || "ลบออเดอร์สำเร็จ")
-
-          // Refresh material data if context is available
-          if (materialContext?.refreshMaterials) {
-            await materialContext.refreshMaterials()
-          }
-        } else {
-          setError(result.message || "ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+        // Refresh material data if context is available
+        if (materialContext?.refreshMaterials) {
+          await materialContext.refreshMaterials()
         }
       } catch (error) {
         console.error("Error deleting order:", error)
         setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+      } finally {
+        setIsDeleteModalOpen(false)
+        setSelectedOrderId(null)
       }
     }
   }
@@ -235,16 +229,12 @@ export default function OrdersManagement() {
 
   const handleSaveSellingPrice = async (updatedOrder: Order) => {
     try {
-      const updatedOrderData = await updateOrderService(updatedOrder.id, { sellingPrice: updatedOrder.sellingPrice })
-      if (updatedOrderData) {
-        // Refetch orders to update UI in real-time
-        const ordersData = await getOrders()
-        setOrders(ordersData)
-        setSuccessMessage("เพิ่มราคาขายสำเร็จ")
-      }
+      await updateOrderService(updatedOrder.id, updatedOrder)
+      setOrders(orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)))
+      setSuccessMessage("อัปเดตราคาขายสำเร็จ")
     } catch (error) {
       console.error("Error updating selling price:", error)
-      setError("ไม่สามารถเพิ่มราคาขายได้ กรุณาลองใหม่อีกครั้ง")
+      setError("ไม่สามารถอัปเดตราคาขายได้ กรุณาลองใหม่อีกครั้ง")
     }
   }
 
@@ -255,17 +245,16 @@ export default function OrdersManagement() {
       const order = orders.find((order) => order.id === selectedOrderId)
       if (!order) return
 
-      // Update the order with production quantity
       const result = await addProductionQuantity(selectedOrderId, productionQuantity, order.product)
 
       if (result.success) {
-        // Refetch orders to update UI in real-time
-        const ordersData = await getOrders()
-        setOrders(ordersData)
-        setIsAddProductionModalOpen(false)
-        setSelectedOrderId(null)
-        setProductionQuantity("")
-        setSuccessMessage(result.message || "เพิ่มจำนวนการผลิตสำเร็จ")
+        // Update the order in local state
+        const updatedOrder = {
+          ...order,
+          remainingQuantity: `${productionQuantity} จาน`,
+        }
+        setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
+        setSuccessMessage("เพิ่มจำนวนการผลิตสำเร็จ")
 
         // Refresh material data if context is available
         if (materialContext?.refreshMaterials) {
@@ -275,20 +264,18 @@ export default function OrdersManagement() {
         setError(result.message || "ไม่สามารถเพิ่มจำนวนการผลิตได้")
       }
     } catch (error) {
-      console.error("Error saving production:", error)
-      setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+      console.error("Error adding production quantity:", error)
+      setError("ไม่สามารถเพิ่มจำนวนการผลิตได้ กรุณาลองใหม่อีกครั้ง")
+    } finally {
+      setIsAddProductionModalOpen(false)
+      setSelectedOrderId(null)
+      setProductionQuantity("")
     }
   }
 
   const handleSelectMachine = (id: string) => {
-    const order = orders.find((order) => order.id === id)
-    if (order && order.remainingQuantity) {
-      setSelectedOrderId(id)
-      setIsSelectMachineModalOpen(true)
-    } else {
-      // Show an alert if production quantity is not set
-      alert("กรุณาระบุจำนวนที่ผลิตก่อนเลือกเครื่องจักร")
-    }
+    setSelectedOrderId(id)
+    setIsSelectMachineModalOpen(true)
   }
 
   const handleSaveMachineSelection = async (electricityCost: number, totalElectricityCost: number) => {
@@ -298,50 +285,30 @@ export default function OrdersManagement() {
       const order = orders.find((order) => order.id === selectedOrderId)
       if (!order) return
 
-      // Update electricity cost in Firestore
-      const success = await updateElectricityCost(selectedOrderId, totalElectricityCost, order.materialCost)
+      const success = await updateElectricityCost(selectedOrderId, electricityCost, order.materialCost)
 
       if (success) {
         // Update the order in local state
-        setOrders(
-          orders.map((order) => {
-            if (order.id === selectedOrderId) {
-              const newTotalCost = order.materialCost + totalElectricityCost
-
-              return {
-                ...order,
-                electricityCost: totalElectricityCost,
-                totalCost: newTotalCost,
-              }
-            }
-            return order
-          }),
-        )
-        setSuccessMessage("บันทึกข้อมูลเครื่องจักรสำเร็จ")
+        const updatedOrder = {
+          ...order,
+          electricityCost,
+          totalCost: electricityCost + order.materialCost,
+        }
+        setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
+        setSuccessMessage("อัปเดตค่าไฟการผลิตสำเร็จ")
       } else {
-        setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+        setError("ไม่สามารถอัปเดตค่าไฟการผลิตได้")
       }
-
+    } catch (error) {
+      console.error("Error updating electricity cost:", error)
+      setError("ไม่สามารถอัปเดตค่าไฟการผลิตได้ กรุณาลองใหม่อีกครั้ง")
+    } finally {
       setIsSelectMachineModalOpen(false)
       setSelectedOrderId(null)
-    } catch (error) {
-      console.error("Error saving machine selection:", error)
-      setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
     }
   }
 
   const hasOrders = orders.length > 0
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -413,170 +380,151 @@ export default function OrdersManagement() {
 
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">แผนการผลิต (ออเดอร์)</h2>
-              {hasOrders && (
-                <button
-                  onClick={handleAddOrder}
-                  className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
-                >
-                  เพิ่ม
-                </button>
-              )}
+              <button
+                onClick={handleAddOrder}
+                className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
+              >
+                เพิ่มออเดอร์
+              </button>
             </div>
 
-            <Card className="overflow-hidden">
-              <div className="overflow-x-auto max-h-[660px] overflow-y-auto">
-                {hasOrders ? (
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-blue-100">
-                      <tr>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          Lot
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ว/ด/ป
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ผลิตภัณฑ์
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          จำนวนที่สั่ง
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          จำนวนที่ผลิต
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          จำนวน QC
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ค่าไฟการผลิต
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ต้นทุนวัตถุดิบ
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ต้นทุนรวม
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ราคาขาย
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          สถานะ
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-sm font-medium text-gray-700">
-                          ACTION
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {orders.map((order) => (
-                        <tr key={order.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{order.lot}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{order.date}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{order.product}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{order.orderedQuantity}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm">
-                            {order.remainingQuantity ? (
-                              <span className="text-gray-700">{order.remainingQuantity}</span>
-                            ) : (
-                              <button
-                                onClick={() => handleAddProduction(order.id)}
-                                className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
-                              >
-                                เพิ่ม
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{order.qcQuantity}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm">
-                            {order.electricityCost > 0 ? (
-                              <span className="text-gray-700">{order.electricityCost.toFixed(6)} บาท</span>
-                            ) : (
-                              <button
-                                onClick={() => handleSelectMachine(order.id)}
-                                className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
-                              >
-                                เลือกเครื่องจักร
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                            {order.materialCost > 0 ? `${order.materialCost.toFixed(2)} บาท` : ""}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                            {order.totalCost > 0 ? `${order.totalCost.toFixed(2)} บาท` : ""}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                            {order.sellingPrice > 0 ? (
-                              `${order.sellingPrice.toFixed(2)} บาท`
-                            ) : (
-                              <button
-                                onClick={() => handleAddSellingPrice(order)}
-                                className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
-                              >
-                                เพิ่ม
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                            <Select
-                              value={order.status}
-                              onValueChange={async (newStatus) => {
-                                try {
-                                  const updatedOrderData = await updateOrderService(order.id, { status: newStatus })
-                                  if (updatedOrderData) {
-                                    // Refetch orders to update UI in real-time
-                                    const ordersData = await getOrders()
-                                    setOrders(ordersData)
-                                    setSuccessMessage("อัปเดตสถานะสำเร็จ")
-                                  }
-                                } catch (error) {
-                                  console.error("Error updating status:", error)
-                                  setError("ไม่สามารถอัปเดตสถานะได้ กรุณาลองใหม่อีกครั้ง")
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-22 h-6 text-xs">
-                                <SelectValue className="text-xs" />
-                              </SelectTrigger>
-                              <SelectContent className="text-xs">
-                                <SelectItem value="กำลังผลิต" className="text-xs">กำลังผลิต</SelectItem>
-                                <SelectItem value="ผลิตเสร็จสิ้น" className="text-xs">ผลิตเสร็จสิ้น</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEditOrder(order.id)}
-                                className="text-yellow-500 hover:text-yellow-700"
-                              >
-                                แก้ไข
-                              </button>
-                              <button
-                                onClick={() => handleDeleteOrder(order.id)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                ลบ
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="p-8 text-center">
-                    <p className="text-gray-500 mb-4">ยังไม่มีรายการออเดอร์</p>
-                    <button
-                      onClick={handleAddOrder}
-                      className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
-                    >
-                      เพิ่มออเดอร์แรก
-                    </button>
-                  </div>
-                )}
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-600">กำลังโหลดข้อมูล...</p>
+                </div>
               </div>
-            </Card>
+            ) : (
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto max-h-[660px] overflow-y-auto">
+                  {hasOrders ? (
+                    <table className="w-full">
+                      <thead className="bg-blue-100">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Lot
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ว/ด/ป
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ผลิตภัณฑ์
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            จำนวนที่สั่ง
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            จำนวนที่ผลิต
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            จำนวน QC
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ค่าไฟการผลิต
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ต้นทุนวัตถุดิบ
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ต้นทุนรวม
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ราคาขาย
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            สถานะ
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            การดำเนินการ
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {orders.map((order) => (
+                          <tr key={order.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.lot}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.product}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.orderedQuantity}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {order.remainingQuantity ? (
+                                <span className="text-gray-700">{order.remainingQuantity}</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleAddProduction(order.id)}
+                                  className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                                >
+                                  เพิ่ม
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.qcQuantity}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {order.electricityCost > 0 ? (
+                                <span className="text-gray-700">{order.electricityCost.toFixed(6)} บาท</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleSelectMachine(order.id)}
+                                  className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                                >
+                                  เลือกเครื่องจักร
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {order.materialCost.toFixed(2)} บาท
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {order.totalCost.toFixed(2)} บาท
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {order.sellingPrice > 0 ? (
+                                <span className="text-gray-700">{order.sellingPrice.toFixed(2)} บาท</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleAddSellingPrice(order)}
+                                  className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                                >
+                                  เพิ่มราคาขาย
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.status}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleEditOrder(order.id)}
+                                  className="text-yellow-500 hover:text-blue-900"
+                                >
+                                  แก้ไข
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  ลบ
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 mb-4">ยังไม่มีรายการออเดอร์</p>
+                      <button
+                        onClick={handleAddOrder}
+                        className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
+                      >
+                        เพิ่มออเดอร์แรก
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
           </div>
         </main>
       </div>
