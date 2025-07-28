@@ -328,50 +328,54 @@ export default function IncomeExpenseTracker() {
             {/* Filter Section */}
             {isFilterOpen && (
               <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-gray-700">วันที่:</label>
                     <input
                       type="date"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-gray-700">เดือน:</label>
                     <select
                       value={filterMonth}
                       onChange={(e) => setFilterMonth(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
                     >
                       <option value="">ทั้งหมด</option>
                       {generateMonthOptions()}
                     </select>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-gray-700">ปี:</label>
                     <select
                       value={filterYear}
                       onChange={(e) => setFilterYear(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
                     >
                       <option value="">ทั้งหมด</option>
                       {generateYearOptions()}
                     </select>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {filterDate || filterMonth || filterYear ? 
-                      `กรองแล้ว: ${filteredTransactions.length} รายการ` : 
-                      `ทั้งหมด: ${transactions.length} รายการ`
-                    }
+                  <div className="flex flex-col space-y-1">
+                    <div className="text-xs text-gray-500">
+                      {filterDate || filterMonth || filterYear ? 
+                        `กรองแล้ว: ${filteredTransactions.length} รายการ` : 
+                        `ทั้งหมด: ${transactions.length} รายการ`
+                      }
+                    </div>
                   </div>
-                  <button
-                    onClick={clearFilter}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 rounded-md text-sm"
-                  >
-                    ล้าง
-                  </button>
+                  <div className="flex flex-col space-y-1">
+                    <button
+                      onClick={clearFilter}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm w-full"
+                    >
+                      ล้าง
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
