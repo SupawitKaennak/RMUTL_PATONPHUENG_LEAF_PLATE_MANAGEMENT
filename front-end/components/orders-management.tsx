@@ -418,7 +418,9 @@ export default function OrdersManagement() {
             </div>
 
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">แผนการผลิต (ออเดอร์)</h2>
+              <div className="bg-blue-100 p-2 rounded-md">
+                <h2 className="text-xl font-semibold">แผนการผลิต (ออเดอร์)</h2>
+              </div>
               {hasOrders && (
                 <button
                   onClick={handleAddOrder}

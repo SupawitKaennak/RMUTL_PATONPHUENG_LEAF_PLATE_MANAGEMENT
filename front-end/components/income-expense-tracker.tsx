@@ -174,7 +174,7 @@ export default function IncomeExpenseTracker() {
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
                 <div className="bg-blue-100 p-2 rounded-md">
-                  <span className="text-lg">ยอดคงเหลือ : {calculateBalance().toLocaleString()} บาท</span>
+                  <span className="text-xl font-semibold bg-blue-100 p-2 rounded-md">ยอดคงเหลือ : {calculateBalance().toLocaleString()} บาท</span>
                 </div>
                 <button
                   onClick={refreshTransactionsData}
