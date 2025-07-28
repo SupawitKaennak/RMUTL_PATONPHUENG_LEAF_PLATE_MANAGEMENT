@@ -273,7 +273,7 @@ export default function OrdersManagement() {
         materialCost: 0,
         totalCost: 0,
         sellingPrice: 0,
-        status: "กำลังผลิต",
+        status: "กำลังเตรียมการ",
         machineId: "",
       }
 
@@ -475,6 +475,29 @@ export default function OrdersManagement() {
     } finally {
       setIsSelectMachineModalOpen(false)
       setSelectedOrderId(null)
+    }
+  }
+
+  // Function to handle status change
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const order = orders.find((order) => order.id === orderId)
+      if (!order) return
+
+      const updatedOrder = {
+        ...order,
+        status: newStatus,
+      }
+
+      await updateOrderService(orderId, updatedOrder)
+      
+      // Update the order in local state
+      setOrders(orders.map((o) => (o.id === orderId ? updatedOrder : o)))
+      setFilteredOrders(filteredOrders.map((o) => (o.id === orderId ? updatedOrder : o)))
+      setSuccessMessage("อัปเดตสถานะสำเร็จ")
+    } catch (error) {
+      console.error("Error updating status:", error)
+      setError("ไม่สามารถอัปเดตสถานะได้ กรุณาลองใหม่อีกครั้ง")
     }
   }
 
@@ -749,7 +772,18 @@ export default function OrdersManagement() {
                                 </button>
                               )}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.status}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
+                                <SelectTrigger className="w-32 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="กำลังเตรียมการ">กำลังเตรียมการ</SelectItem>
+                                  <SelectItem value="กำลังผลิต">กำลังผลิต</SelectItem>
+                                  <SelectItem value="ผลิตเสร็จสิ้น">ผลิตเสร็จสิ้น</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <div className="flex space-x-2">
                                 <button
