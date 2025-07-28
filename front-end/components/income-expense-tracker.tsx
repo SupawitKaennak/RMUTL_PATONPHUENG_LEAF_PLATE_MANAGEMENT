@@ -27,6 +27,7 @@ export default function IncomeExpenseTracker() {
   const [filterDate, setFilterDate] = useState("")
   const [filterMonth, setFilterMonth] = useState("")
   const [filterYear, setFilterYear] = useState("")
+  const [filterSearch, setFilterSearch] = useState("")
 
   // Fetch transactions on component mount
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function IncomeExpenseTracker() {
 
   const applyFilter = () => {
     let filtered = [...transactions]
-    
+
     if (filterDate) {
       filtered = filtered.filter(transaction => {
         // Parse transaction date (format: DD/MM/YY)
@@ -88,11 +89,9 @@ export default function IncomeExpenseTracker() {
         // Convert filter year to Buddhist era for comparison
         const filterBuddhistYear = filterYear + 543
 
-        const matches = transactionDay === filterDay && 
-                       transactionMonth === filterMonth && 
-                       transactionYear === filterBuddhistYear
-        
-        return matches
+        return transactionDay === filterDay && 
+               transactionMonth === filterMonth && 
+               transactionYear === filterBuddhistYear
       })
     }
 
@@ -100,8 +99,7 @@ export default function IncomeExpenseTracker() {
       filtered = filtered.filter(transaction => {
         const [, month] = transaction.date.split('/')
         const transactionMonth = parseInt(month)
-        const matches = transactionMonth === parseInt(filterMonth)
-        return matches
+        return transactionMonth === parseInt(filterMonth)
       })
     }
 
@@ -110,9 +108,18 @@ export default function IncomeExpenseTracker() {
         const [, , year] = transaction.date.split('/')
         const transactionYear = parseInt(year) + 2500 // Convert YY to YYYY
         const buddhistYear = parseInt(filterYear)
-        const matches = transactionYear === buddhistYear
-        return matches
+        return transactionYear === buddhistYear
       })
+    }
+
+    if (filterSearch) {
+      const searchTerm = filterSearch.toLowerCase()
+      filtered = filtered.filter(transaction => 
+        transaction.description.toLowerCase().includes(searchTerm) ||
+        transaction.category.toLowerCase().includes(searchTerm) ||
+        transaction.notes.toLowerCase().includes(searchTerm) ||
+        transaction.amount.toString().includes(searchTerm)
+      )
     }
 
     setFilteredTransactions(filtered)
@@ -122,6 +129,7 @@ export default function IncomeExpenseTracker() {
     setFilterDate("")
     setFilterMonth("")
     setFilterYear("")
+    setFilterSearch("")
     setFilteredTransactions(transactions)
   }
 
@@ -175,7 +183,7 @@ export default function IncomeExpenseTracker() {
     if (transactions.length > 0) {
       applyFilter()
     }
-  }, [filterDate, filterMonth, filterYear, transactions])
+  }, [filterDate, filterMonth, filterYear, filterSearch, transactions])
 
   const handleAddTransaction = () => {
     setIsAddModalOpen(true)
@@ -328,7 +336,17 @@ export default function IncomeExpenseTracker() {
             {/* Filter Section */}
             {isFilterOpen && (
               <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">ค้นหา:</label>
+                    <input
+                      type="text"
+                      placeholder="ค้นหารายการ, ประเภท, หมายเหตุ..."
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                    />
+                  </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-gray-700">วันที่:</label>
                     <input
@@ -362,7 +380,7 @@ export default function IncomeExpenseTracker() {
                   </div>
                   <div className="flex flex-col space-y-1">
                     <div className="text-xs text-gray-500">
-                      {filterDate || filterMonth || filterYear ? 
+                      {filterDate || filterMonth || filterYear || filterSearch ? 
                         `กรองแล้ว: ${filteredTransactions.length} รายการ` : 
                         `ทั้งหมด: ${transactions.length} รายการ`
                       }

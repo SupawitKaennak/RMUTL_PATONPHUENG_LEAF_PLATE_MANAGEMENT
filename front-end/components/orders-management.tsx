@@ -54,6 +54,7 @@ export default function OrdersManagement() {
   const [filterDate, setFilterDate] = useState("")
   const [filterMonth, setFilterMonth] = useState("")
   const [filterYear, setFilterYear] = useState("")
+  const [filterSearch, setFilterSearch] = useState("")
 
   // Try to access the material context
   const materialContext = useContext(MaterialContext)
@@ -156,6 +157,18 @@ export default function OrdersManagement() {
       })
     }
 
+    if (filterSearch) {
+      const searchTerm = filterSearch.toLowerCase()
+      filtered = filtered.filter(order => 
+        order.lot.toLowerCase().includes(searchTerm) ||
+        order.product.toLowerCase().includes(searchTerm) ||
+        order.status.toLowerCase().includes(searchTerm) ||
+        order.orderedQuantity.toLowerCase().includes(searchTerm) ||
+        order.remainingQuantity.toLowerCase().includes(searchTerm) ||
+        order.qcQuantity.toLowerCase().includes(searchTerm)
+      )
+    }
+
     setFilteredOrders(filtered)
   }
 
@@ -163,6 +176,7 @@ export default function OrdersManagement() {
     setFilterDate("")
     setFilterMonth("")
     setFilterYear("")
+    setFilterSearch("")
     setFilteredOrders(orders)
   }
 
@@ -210,7 +224,7 @@ export default function OrdersManagement() {
     if (orders.length > 0) {
       applyFilter()
     }
-  }, [filterDate, filterMonth, filterYear, orders])
+  }, [filterDate, filterMonth, filterYear, filterSearch, orders])
 
   const handleAddOrder = () => {
     setNewOrderDate("")
@@ -562,7 +576,17 @@ export default function OrdersManagement() {
             {/* Filter Section */}
             {isFilterOpen && (
               <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">ค้นหา:</label>
+                    <input
+                      type="text"
+                      placeholder="ค้นหา Lot, ผลิตภัณฑ์, สถานะ..."
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                    />
+                  </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-gray-700">วันที่:</label>
                     <input
@@ -596,7 +620,7 @@ export default function OrdersManagement() {
                   </div>
                   <div className="flex flex-col space-y-1">
                     <div className="text-xs text-gray-500">
-                      {filterDate || filterMonth || filterYear ? 
+                      {filterDate || filterMonth || filterYear || filterSearch ? 
                         `กรองแล้ว: ${filteredOrders.length} รายการ` : 
                         `ทั้งหมด: ${orders.length} รายการ`
                       }

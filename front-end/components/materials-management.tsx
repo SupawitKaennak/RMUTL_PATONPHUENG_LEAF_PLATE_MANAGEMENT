@@ -30,6 +30,7 @@ export default function MaterialsManagement() {
   const [historyFilterDate, setHistoryFilterDate] = useState("")
   const [historyFilterMonth, setHistoryFilterMonth] = useState("")
   const [historyFilterYear, setHistoryFilterYear] = useState("")
+  const [historyFilterSearch, setHistoryFilterSearch] = useState("")
 
   // Fetch materials and history on component mount
   useEffect(() => {
@@ -123,6 +124,16 @@ export default function MaterialsManagement() {
       })
     }
 
+    if (historyFilterSearch) {
+      const searchTerm = historyFilterSearch.toLowerCase()
+      filtered = filtered.filter(history => 
+        history.name.toLowerCase().includes(searchTerm) ||
+        history.action.toLowerCase().includes(searchTerm) ||
+        history.unit.toLowerCase().includes(searchTerm) ||
+        history.quantity.toString().includes(searchTerm)
+      )
+    }
+
     setFilteredMaterialHistory(filtered)
   }
 
@@ -130,6 +141,7 @@ export default function MaterialsManagement() {
     setHistoryFilterDate("")
     setHistoryFilterMonth("")
     setHistoryFilterYear("")
+    setHistoryFilterSearch("")
     setFilteredMaterialHistory(materialHistory)
   }
 
@@ -177,7 +189,7 @@ export default function MaterialsManagement() {
     if (materialHistory.length > 0) {
       applyHistoryFilter()
     }
-  }, [historyFilterDate, historyFilterMonth, historyFilterYear, materialHistory])
+  }, [historyFilterDate, historyFilterMonth, historyFilterYear, historyFilterSearch, materialHistory])
 
   const handleAddMaterial = () => {
     setIsAddModalOpen(true)
@@ -461,7 +473,17 @@ export default function MaterialsManagement() {
               {/* History Filter Section */}
               {isHistoryFilterOpen && (
                 <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-center">
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-sm font-medium text-gray-700">ค้นหา:</label>
+                      <input
+                        type="text"
+                        placeholder="ค้นหาชื่อวัตถุดิบ, การดำเนินการ..."
+                        value={historyFilterSearch}
+                        onChange={(e) => setHistoryFilterSearch(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                      />
+                    </div>
                     <div className="flex flex-col space-y-1">
                       <label className="text-sm font-medium text-gray-700">วันที่:</label>
                       <input
@@ -495,7 +517,7 @@ export default function MaterialsManagement() {
                     </div>
                     <div className="flex flex-col space-y-1">
                       <div className="text-xs text-gray-500">
-                        {historyFilterDate || historyFilterMonth || historyFilterYear ? 
+                        {historyFilterDate || historyFilterMonth || historyFilterYear || historyFilterSearch ? 
                           `กรองแล้ว: ${filteredMaterialHistory.length} รายการ` : 
                           `ทั้งหมด: ${materialHistory.length} รายการ`
                         }
