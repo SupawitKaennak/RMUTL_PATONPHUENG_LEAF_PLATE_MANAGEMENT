@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Menu, RefreshCw, AlertCircle } from "lucide-react"
+import { Menu, RefreshCw, AlertCircle, Filter } from "lucide-react"
 import Sidebar from "./sidebar"
 import { Card } from "@/components/ui/card"
 import AddMaterialModal from "./add-material-modal"
@@ -19,12 +19,17 @@ export default function MaterialsManagement() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [materials, setMaterials] = useState<Material[]>([])
   const [materialHistory, setMaterialHistory] = useState<MaterialHistory[]>([])
+  const [filteredMaterialHistory, setFilteredMaterialHistory] = useState<MaterialHistory[]>([])
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [filterDate, setFilterDate] = useState("")
+  const [filterMonth, setFilterMonth] = useState("")
+  const [filterYear, setFilterYear] = useState("")
 
   // Fetch materials and history on component mount
   useEffect(() => {
@@ -36,6 +41,7 @@ export default function MaterialsManagement() {
 
         setMaterials(materialsData)
         setMaterialHistory(historyData)
+        setFilteredMaterialHistory(historyData)
       } catch (error) {
         console.error("Error fetching data:", error)
         setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -56,6 +62,7 @@ export default function MaterialsManagement() {
 
       setMaterials(materialsData)
       setMaterialHistory(historyData)
+      setFilteredMaterialHistory(historyData)
       setError(null)
     } catch (error) {
       console.error("Error refreshing data:", error)
@@ -67,6 +74,102 @@ export default function MaterialsManagement() {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
+  }
+
+  const toggleFilter = () => {
+    setIsFilterOpen(!isFilterOpen)
+  }
+
+  const applyFilter = () => {
+    let filtered = [...materialHistory]
+    
+    console.log('Applying filter with:', { filterDate, filterMonth, filterYear })
+    console.log('Total material history:', materialHistory.length)
+    
+    // Show sample material history dates for debugging
+    if (materialHistory.length > 0) {
+      console.log('Sample material history dates:')
+      materialHistory.slice(0, 3).forEach((h, i) => {
+        console.log(`History ${i + 1}: ${h.date}`)
+      })
+    }
+
+    if (filterDate) {
+      console.log('Filtering by date:', filterDate)
+      filtered = filtered.filter(history => {
+        // Parse history date (format: DD/MM/YY)
+        const [day, month, year] = history.date.split('/')
+        const historyDay = parseInt(day)
+        const historyMonth = parseInt(month)
+        const historyYear = parseInt(year) + 2500 // Convert YY to YYYY (assuming 25xx)
+
+        // Parse filter date (format: YYYY-MM-DD from date picker)
+        const filterDateObj = new Date(filterDate)
+        const filterDay = filterDateObj.getDate()
+        const filterMonth = filterDateObj.getMonth() + 1
+        const filterYear = filterDateObj.getFullYear()
+
+        // Convert filter year to Buddhist era for comparison
+        const filterBuddhistYear = filterYear + 543
+
+        const matches = historyDay === filterDay && 
+                       historyMonth === filterMonth && 
+                       historyYear === filterBuddhistYear
+        
+        console.log(`History ${history.date}: day=${historyDay}, month=${historyMonth}, year=${historyYear}`)
+        console.log(`Filter: day=${filterDay}, month=${filterMonth}, year=${filterYear} (CE) -> ${filterBuddhistYear} (BE), matches=${matches}`)
+        
+        return matches
+      })
+    }
+
+    if (filterMonth) {
+      console.log('Filtering by month:', filterMonth)
+      filtered = filtered.filter(history => {
+        const [, month] = history.date.split('/')
+        const historyMonth = parseInt(month)
+        const matches = historyMonth === parseInt(filterMonth)
+        console.log(`History ${history.date}: month=${historyMonth}, matches=${matches}`)
+        return matches
+      })
+    }
+
+    if (filterYear) {
+      console.log('Filtering by year:', filterYear)
+      filtered = filtered.filter(history => {
+        const [, , year] = history.date.split('/')
+        const historyYear = parseInt(year) + 2500 // Convert YY to YYYY
+        const buddhistYear = parseInt(filterYear)
+        const matches = historyYear === buddhistYear
+        console.log(`History ${history.date}: year=${historyYear}, buddhistYear=${buddhistYear}, matches=${matches}`)
+        return matches
+      })
+    }
+
+    console.log('Filtered material history:', filtered.length)
+    setFilteredMaterialHistory(filtered)
+  }
+
+  const clearFilter = () => {
+    setFilterDate("")
+    setFilterMonth("")
+    setFilterYear("")
+    setFilteredMaterialHistory(materialHistory)
+  }
+
+  // Generate year options dynamically
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear() + 543 // Convert to Buddhist era
+    const years = []
+    // Generate 10 years from current year (5 years back and 5 years forward)
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(
+        <option key={i} value={i.toString()}>
+          {i}
+        </option>
+      )
+    }
+    return years
   }
 
   const handleAddMaterial = () => {
@@ -187,7 +290,7 @@ export default function MaterialsManagement() {
   }
 
   const hasMaterials = materials.length > 0
-  const hasMaterialHistory = materialHistory.length > 0
+  const hasMaterialHistory = filteredMaterialHistory.length > 0
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -329,11 +432,87 @@ export default function MaterialsManagement() {
             {/* Material History */}
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center">
+                <div className="flex items-center space-x-2">
                   <h2 className="text-xl font-semibold bg-yellow-100 p-2 rounded-md">ประวัติการจัดการวัตถุดิบ</h2>
+                  <button
+                    onClick={toggleFilter}
+                    className={`p-2 rounded-md flex items-center ${
+                      isFilterOpen ? 'bg-yellow-200' : 'bg-yellow-100 hover:bg-yellow-200'
+                    }`}
+                    title="กรองข้อมูล"
+                  >
+                    <Filter className="h-5 w-5" />
+                  </button>
                 </div>
                 <div className="w-32"></div> {/* Spacer to match the width of the "เพิ่มวัตถุดิบ" button */}
               </div>
+
+              {/* Filter Section */}
+              {isFilterOpen && (
+                <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-sm font-medium text-gray-700">วันที่:</label>
+                      <input
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-sm font-medium text-gray-700">เดือน:</label>
+                      <select
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      >
+                        <option value="">ทั้งหมด</option>
+                        <option value="1">มกราคม</option>
+                        <option value="2">กุมภาพันธ์</option>
+                        <option value="3">มีนาคม</option>
+                        <option value="4">เมษายน</option>
+                        <option value="5">พฤษภาคม</option>
+                        <option value="6">มิถุนายน</option>
+                        <option value="7">กรกฎาคม</option>
+                        <option value="8">สิงหาคม</option>
+                        <option value="9">กันยายน</option>
+                        <option value="10">ตุลาคม</option>
+                        <option value="11">พฤศจิกายน</option>
+                        <option value="12">ธันวาคม</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-sm font-medium text-gray-700">ปี:</label>
+                      <select
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      >
+                        <option value="">ทั้งหมด</option>
+                        {generateYearOptions()}
+                      </select>
+                    </div>
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-sm font-medium text-gray-700 opacity-0">ปุ่ม:</label>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={applyFilter}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex-1"
+                        >
+                          กรอง
+                        </button>
+                        <button
+                          onClick={clearFilter}
+                          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex-1"
+                        >
+                          ล้าง
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-center">
@@ -366,7 +545,7 @@ export default function MaterialsManagement() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {materialHistory.map((history) => (
+                          {filteredMaterialHistory.map((history) => (
                             <tr key={history.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.date}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">

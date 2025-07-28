@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Menu, AlertCircle, RefreshCw } from "lucide-react"
+import { Menu, AlertCircle, RefreshCw, Filter } from "lucide-react"
 import Sidebar from "./sidebar"
 import TransactionTable from "./transaction-table"
 import AddTransactionModal from "./add-transaction-modal"
@@ -19,9 +19,14 @@ export default function IncomeExpenseTracker() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [filterDate, setFilterDate] = useState("")
+  const [filterMonth, setFilterMonth] = useState("")
+  const [filterYear, setFilterYear] = useState("")
 
   // Fetch transactions on component mount
   useEffect(() => {
@@ -33,6 +38,7 @@ export default function IncomeExpenseTracker() {
       setLoading(true)
       const transactionsData = await getTransactions()
       setTransactions(transactionsData)
+      setFilteredTransactions(transactionsData)
       setError(null)
     } catch (error) {
       console.error("Error fetching transactions:", error)
@@ -58,10 +64,82 @@ export default function IncomeExpenseTracker() {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
+  const toggleFilter = () => {
+    setIsFilterOpen(!isFilterOpen)
+  }
+
+  const applyFilter = () => {
+    let filtered = [...transactions]
+
+    if (filterDate) {
+      filtered = filtered.filter(transaction => {
+        // Parse transaction date (format: DD/MM/YY)
+        const [day, month, year] = transaction.date.split('/')
+        const transactionDay = parseInt(day)
+        const transactionMonth = parseInt(month)
+        const transactionYear = parseInt(year) + 2500 // Convert YY to YYYY (assuming 25xx)
+
+        // Parse filter date (format: YYYY-MM-DD from date picker)
+        const filterDateObj = new Date(filterDate)
+        const filterDay = filterDateObj.getDate()
+        const filterMonth = filterDateObj.getMonth() + 1
+        const filterYear = filterDateObj.getFullYear()
+
+        // Convert filter year to Buddhist era for comparison
+        const filterBuddhistYear = filterYear + 543
+
+        return transactionDay === filterDay && 
+               transactionMonth === filterMonth && 
+               transactionYear === filterBuddhistYear
+      })
+    }
+
+    if (filterMonth) {
+      filtered = filtered.filter(transaction => {
+        const [, month] = transaction.date.split('/')
+        const transactionMonth = parseInt(month)
+        return transactionMonth === parseInt(filterMonth)
+      })
+    }
+
+    if (filterYear) {
+      filtered = filtered.filter(transaction => {
+        const [, , year] = transaction.date.split('/')
+        const transactionYear = parseInt(year) + 2500 // Convert YY to YYYY
+        const buddhistYear = parseInt(filterYear)
+        return transactionYear === buddhistYear
+      })
+    }
+
+    setFilteredTransactions(filtered)
+  }
+
+  const clearFilter = () => {
+    setFilterDate("")
+    setFilterMonth("")
+    setFilterYear("")
+    setFilteredTransactions(transactions)
+  }
+
   const calculateBalance = () => {
-    return transactions.reduce((total, transaction) => {
+    return filteredTransactions.reduce((total, transaction) => {
       return transaction.isIncome ? total + transaction.amount : total - transaction.amount
     }, 0)
+  }
+
+  // Generate year options dynamically
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear() + 543 // Convert to Buddhist era
+    const years = []
+    // Generate 10 years from current year (5 years back and 5 years forward)
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(
+        <option key={i} value={i.toString()}>
+          {i}
+        </option>
+      )
+    }
+    return years
   }
 
   const handleAddTransaction = () => {
@@ -79,7 +157,9 @@ export default function IncomeExpenseTracker() {
         ...newTransaction,
       }
 
-      setTransactions([transactionWithId, ...transactions])
+      const updatedTransactions = [transactionWithId, ...transactions]
+      setTransactions(updatedTransactions)
+      setFilteredTransactions(updatedTransactions)
     } catch (error) {
       console.error("Error saving transaction:", error)
       setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -100,11 +180,11 @@ export default function IncomeExpenseTracker() {
       await updateTransaction(updatedTransaction.id, updatedTransaction)
 
       // Update the transaction in local state
-      setTransactions(
-        transactions.map((transaction) =>
-          transaction.id === updatedTransaction.id ? updatedTransaction : transaction,
-        ),
+      const updatedTransactions = transactions.map((t) =>
+        t.id === updatedTransaction.id ? updatedTransaction : t
       )
+      setTransactions(updatedTransactions)
+      setFilteredTransactions(updatedTransactions)
     } catch (error) {
       console.error("Error updating transaction:", error)
       setError("ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -123,7 +203,9 @@ export default function IncomeExpenseTracker() {
         await deleteTransaction(transactionToDelete)
 
         // Remove the transaction from local state
-        setTransactions(transactions.filter((transaction) => transaction.id !== transactionToDelete))
+        const updatedTransactions = transactions.filter((t) => t.id !== transactionToDelete)
+        setTransactions(updatedTransactions)
+        setFilteredTransactions(updatedTransactions)
 
         // Close the modal and reset state
         setIsDeleteModalOpen(false)
@@ -135,7 +217,7 @@ export default function IncomeExpenseTracker() {
     }
   }
 
-  const hasTransactions = transactions.length > 0
+  const hasTransactions = filteredTransactions.length > 0
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -172,13 +254,13 @@ export default function IncomeExpenseTracker() {
 
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <div className="bg-blue-100 p-2 rounded-md">
-                  <span className="text-xl font-semibold bg-blue-100 p-2 rounded-md">ยอดคงเหลือ : {calculateBalance().toLocaleString()} บาท</span>
+                  <span className="text-lg">ยอดคงเหลือ : {calculateBalance().toLocaleString()} บาท</span>
                 </div>
                 <button
                   onClick={refreshTransactionsData}
-                  className="ml-2 p-2 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center"
+                  className="p-2 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center"
                   title="รีเฟรชข้อมูล"
                   disabled={isRefreshing}
                 >
@@ -187,6 +269,15 @@ export default function IncomeExpenseTracker() {
                     <span className="ml-1 text-sm">กำลังรีเฟรช...</span>
                   ) : null}
                 </button>
+                                  <button
+                    onClick={toggleFilter}
+                    className={`p-2 rounded-md flex items-center ${
+                      isFilterOpen ? 'bg-blue-200' : 'bg-blue-100 hover:bg-blue-200'
+                    }`}
+                    title="กรองข้อมูล"
+                  >
+                    <Filter className="h-5 w-5" />
+                  </button>
               </div>
 
               {hasTransactions && (
@@ -199,6 +290,73 @@ export default function IncomeExpenseTracker() {
               )}
             </div>
 
+            {/* Filter Section */}
+            {isFilterOpen && (
+              <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">วันที่:</label>
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">เดือน:</label>
+                    <select
+                      value={filterMonth}
+                      onChange={(e) => setFilterMonth(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">ทั้งหมด</option>
+                      <option value="1">มกราคม</option>
+                      <option value="2">กุมภาพันธ์</option>
+                      <option value="3">มีนาคม</option>
+                      <option value="4">เมษายน</option>
+                      <option value="5">พฤษภาคม</option>
+                      <option value="6">มิถุนายน</option>
+                      <option value="7">กรกฎาคม</option>
+                      <option value="8">สิงหาคม</option>
+                      <option value="9">กันยายน</option>
+                      <option value="10">ตุลาคม</option>
+                      <option value="11">พฤศจิกายน</option>
+                      <option value="12">ธันวาคม</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">ปี:</label>
+                    <select
+                      value={filterYear}
+                      onChange={(e) => setFilterYear(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">ทั้งหมด</option>
+                      {generateYearOptions()}
+                    </select>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700 opacity-0">ปุ่ม:</label>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={applyFilter}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex-1"
+                      >
+                        กรอง
+                      </button>
+                      <button
+                        onClick={clearFilter}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex-1"
+                      >
+                        ล้าง
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
@@ -210,7 +368,7 @@ export default function IncomeExpenseTracker() {
               <Card className="overflow-hidden">
                 <div className="overflow-x-auto max-h-[850px] overflow-y-auto">
                   <TransactionTable
-                    transactions={transactions}
+                    transactions={filteredTransactions}
                     onEdit={handleEditTransaction}
                     onDelete={handleDeleteTransaction}
                   />

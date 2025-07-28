@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useContext } from "react"
-import { Menu, Calendar, AlertCircle, Info } from "lucide-react"
+import { Menu, Calendar, AlertCircle, Info, Filter } from "lucide-react"
 import Sidebar from "./sidebar"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -49,6 +49,12 @@ export default function OrdersManagement() {
   const [newOrderQuantity, setNewOrderQuantity] = useState("")
 
   const [orders, setOrders] = useState<Order[]>([])
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [filterDate, setFilterDate] = useState("")
+  const [filterMonth, setFilterMonth] = useState("")
+  const [filterYear, setFilterYear] = useState("")
+  const [filterDishShape, setFilterDishShape] = useState("")
 
   // Try to access the material context
   const materialContext = useContext(MaterialContext)
@@ -78,6 +84,7 @@ export default function OrdersManagement() {
         setLoading(true)
         const ordersData = await getOrders()
         setOrders(ordersData)
+        setFilteredOrders(ordersData)
       } catch (error) {
         console.error("Error fetching orders:", error)
         setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -103,6 +110,112 @@ export default function OrdersManagement() {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
+  const toggleFilter = () => {
+    setIsFilterOpen(!isFilterOpen)
+  }
+
+  const applyFilter = () => {
+    let filtered = [...orders]
+    
+    console.log('Applying filter with:', { filterDate, filterMonth, filterYear, filterDishShape })
+    console.log('Total orders:', orders.length)
+    
+    // Show sample order dates for debugging
+    if (orders.length > 0) {
+      console.log('Sample order dates:')
+      orders.slice(0, 3).forEach((o, i) => {
+        console.log(`Order ${i + 1}: ${o.date}`)
+      })
+    }
+
+    if (filterDate) {
+      console.log('Filtering by date:', filterDate)
+      filtered = filtered.filter(order => {
+        // Parse order date (format: DD/MM/YY)
+        const [day, month, year] = order.date.split('/')
+        const orderDay = parseInt(day)
+        const orderMonth = parseInt(month)
+        const orderYear = parseInt(year) + 2500 // Convert YY to YYYY (assuming 25xx)
+
+        // Parse filter date (format: YYYY-MM-DD from date picker)
+        const filterDateObj = new Date(filterDate)
+        const filterDay = filterDateObj.getDate()
+        const filterMonth = filterDateObj.getMonth() + 1
+        const filterYear = filterDateObj.getFullYear()
+
+        // Convert filter year to Buddhist era for comparison
+        const filterBuddhistYear = filterYear + 543
+
+        const matches = orderDay === filterDay && 
+                       orderMonth === filterMonth && 
+                       orderYear === filterBuddhistYear
+        
+        console.log(`Order ${order.date}: day=${orderDay}, month=${orderMonth}, year=${orderYear}`)
+        console.log(`Filter: day=${filterDay}, month=${filterMonth}, year=${filterYear} (CE) -> ${filterBuddhistYear} (BE), matches=${matches}`)
+        
+        return matches
+      })
+    }
+
+    if (filterMonth) {
+      console.log('Filtering by month:', filterMonth)
+      filtered = filtered.filter(order => {
+        const [, month] = order.date.split('/')
+        const orderMonth = parseInt(month)
+        const matches = orderMonth === parseInt(filterMonth)
+        console.log(`Order ${order.date}: month=${orderMonth}, matches=${matches}`)
+        return matches
+      })
+    }
+
+    if (filterYear) {
+      console.log('Filtering by year:', filterYear)
+      filtered = filtered.filter(order => {
+        const [, , year] = order.date.split('/')
+        const orderYear = parseInt(year) + 2500 // Convert YY to YYYY
+        const buddhistYear = parseInt(filterYear)
+        const matches = orderYear === buddhistYear
+        console.log(`Order ${order.date}: year=${orderYear}, buddhistYear=${buddhistYear}, matches=${matches}`)
+        return matches
+      })
+    }
+
+    if (filterDishShape) {
+      console.log('Filtering by dish shape:', filterDishShape)
+      filtered = filtered.filter(order => {
+        const matches = order.product === filterDishShape
+        console.log(`Order ${order.product}: matches=${matches}`)
+        return matches
+      })
+    }
+
+    console.log('Filtered orders:', filtered.length)
+    setFilteredOrders(filtered)
+  }
+
+  const clearFilter = () => {
+    setFilterDate("")
+    setFilterMonth("")
+    setFilterYear("")
+    setFilterDishShape("")
+    setFilteredOrders(orders)
+  }
+
+  // Generate year options dynamically
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear() + 543 // Convert to Buddhist era
+    const years = []
+    // Generate 10 years from current year (5 years back and 5 years forward)
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(
+        <option key={i} value={i.toString()}>
+          {i}
+        </option>
+      )
+    }
+    return years
+  }
+
   const handleAddOrder = () => {
     setNewOrderDate("")
     setNewOrderProduct("")
@@ -121,54 +234,44 @@ export default function OrdersManagement() {
   }
 
   const handleSaveOrder = async () => {
-    if (!newOrderProduct || !newOrderQuantity) return
+    if (!newOrderProduct || !newOrderQuantity) {
+      setError("กรุณากรอกข้อมูลให้ครบถ้วน")
+      return
+    }
 
     try {
-      // Use current date if date field is empty
-      const orderDate = newOrderDate || getCurrentThaiDate()
+      const quantity = parseInt(newOrderQuantity)
+      const materialCost = calculateMaterialCost(newOrderProduct, quantity)
 
-      // Generate a new lot number (A + next number)
-      let newLotNumber = "A1" // Default for first order
-
-      if (orders.length > 0) {
-        const maxLotNumber = orders
-          .filter((order) => order.lot.startsWith("A"))
-          .map((order) => Number.parseInt(order.lot.substring(1)))
-          .reduce((max, num) => Math.max(max, num), 0)
-
-        newLotNumber = `A${maxLotNumber + 1}`
-      }
-
-      const newOrder: Omit<Order, "id"> = {
-        lot: newLotNumber,
-        date: orderDate,
+      const newOrder = {
+        date: newOrderDate || getCurrentThaiDate(),
         product: newOrderProduct,
-        orderedQuantity: `${newOrderQuantity} จาน`,
-        remainingQuantity: "",
-        qcQuantity: "",
+        orderedQuantity: `${quantity} จาน`,
+        materialCost,
         electricityCost: 0,
-        materialCost: 0,
-        totalCost: 0,
+        totalCost: materialCost,
         sellingPrice: 0,
+        remainingQuantity: `${quantity} จาน`,
+        qcQuantity: "",
         status: "กำลังผลิต",
-        machineId: "",
+        lot: `LOT${Date.now()}`,
       }
 
-      // Add the new order to Firestore
       const orderId = await addOrderService(newOrder)
+      const orderWithId = { id: orderId, ...newOrder }
 
-      // Add the order to local state with the new ID
-      const orderWithId: Order = {
-        id: orderId,
-        ...newOrder,
-      }
+      const updatedOrders = [orderWithId, ...orders]
+      setOrders(updatedOrders)
+      setFilteredOrders(updatedOrders)
 
-      setOrders([orderWithId, ...orders])
+      setSuccessMessage("เพิ่มออเดอร์สำเร็จ")
       setIsAddOrderModalOpen(false)
-      setSuccessMessage(`เพิ่มออเดอร์ ${newLotNumber} สำเร็จ`)
+      setNewOrderDate("")
+      setNewOrderProduct("")
+      setNewOrderQuantity("")
     } catch (error) {
-      console.error("Error saving order:", error)
-      setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+      console.error("Error adding order:", error)
+      setError("ไม่สามารถเพิ่มออเดอร์ได้ กรุณาลองใหม่อีกครั้ง")
     }
   }
 
@@ -188,6 +291,7 @@ export default function OrdersManagement() {
       if (updatedOrderData) {
         // Update the order in local state with updated data from backend
         setOrders(orders.map((order) => (order.id === updatedOrderData.id ? updatedOrderData : order)))
+        setFilteredOrders(orders.map((order) => (order.id === updatedOrderData.id ? updatedOrderData : order)))
       } else {
         // Fallback to using passed updatedOrder if backend data not available
         setOrders(orders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)))
@@ -215,6 +319,7 @@ export default function OrdersManagement() {
       try {
         await deleteOrderService(selectedOrderId)
         setOrders(orders.filter((order) => order.id !== selectedOrderId))
+        setFilteredOrders(orders.filter((order) => order.id !== selectedOrderId))
         setSuccessMessage("ลบออเดอร์สำเร็จ")
 
         // Refresh material data if context is available
@@ -257,6 +362,7 @@ export default function OrdersManagement() {
 
       await updateOrderService(updatedOrder.id, orderWithUpdatedCosts)
       setOrders(orders.map((order) => (order.id === updatedOrder.id ? orderWithUpdatedCosts : order)))
+      setFilteredOrders(orders.map((order) => (order.id === updatedOrder.id ? orderWithUpdatedCosts : order)))
       setSuccessMessage("อัปเดตราคาขายสำเร็จ")
     } catch (error) {
       console.error("Error updating selling price:", error)
@@ -287,6 +393,7 @@ export default function OrdersManagement() {
           totalCost,
         }
         setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
+        setFilteredOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
         setSuccessMessage("เพิ่มจำนวนการผลิตสำเร็จ")
 
         // Refresh material data if context is available
@@ -334,6 +441,7 @@ export default function OrdersManagement() {
           totalCost,
         }
         setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
+        setFilteredOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
         setSuccessMessage("อัปเดตค่าไฟการผลิตสำเร็จ")
       } else {
         setError("ไม่สามารถอัปเดตค่าไฟการผลิตได้")
@@ -347,7 +455,7 @@ export default function OrdersManagement() {
     }
   }
 
-  const hasOrders = orders.length > 0
+  const hasOrders = filteredOrders.length > 0
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -418,8 +526,19 @@ export default function OrdersManagement() {
             </div>
 
             <div className="flex justify-between items-center mb-4">
-              <div className="bg-blue-100 p-2 rounded-md">
-                <h2 className="text-xl font-semibold">แผนการผลิต (ออเดอร์)</h2>
+              <div className="flex items-center space-x-2">
+                <div className="bg-blue-100 p-2 rounded-md">
+                  <h2 className="text-xl font-semibold">แผนการผลิต (ออเดอร์)</h2>
+                </div>
+                <button
+                  onClick={toggleFilter}
+                  className={`p-2 rounded-md flex items-center ${
+                    isFilterOpen ? 'bg-blue-200' : 'bg-blue-100 hover:bg-blue-200'
+                  }`}
+                  title="กรองข้อมูล"
+                >
+                  <Filter className="h-5 w-5" />
+                </button>
               </div>
               {hasOrders && (
                 <button
@@ -430,6 +549,86 @@ export default function OrdersManagement() {
                 </button>
               )}
             </div>
+
+            {/* Filter Section */}
+            {isFilterOpen && (
+              <div className="bg-white p-4 rounded-md shadow-sm mb-4 border">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">วันที่:</label>
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">เดือน:</label>
+                    <select
+                      value={filterMonth}
+                      onChange={(e) => setFilterMonth(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">ทั้งหมด</option>
+                      <option value="1">มกราคม</option>
+                      <option value="2">กุมภาพันธ์</option>
+                      <option value="3">มีนาคม</option>
+                      <option value="4">เมษายน</option>
+                      <option value="5">พฤษภาคม</option>
+                      <option value="6">มิถุนายน</option>
+                      <option value="7">กรกฎาคม</option>
+                      <option value="8">สิงหาคม</option>
+                      <option value="9">กันยายน</option>
+                      <option value="10">ตุลาคม</option>
+                      <option value="11">พฤศจิกายน</option>
+                      <option value="12">ธันวาคม</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">ปี:</label>
+                    <select
+                      value={filterYear}
+                      onChange={(e) => setFilterYear(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">ทั้งหมด</option>
+                      {generateYearOptions()}
+                    </select>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700">รูปทรงจาน:</label>
+                    <select
+                      value={filterDishShape}
+                      onChange={(e) => setFilterDishShape(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">ทั้งหมด</option>
+                      <option value="จานสี่เหลี่ยม">จานสี่เหลี่ยม</option>
+                      <option value="จานวงกลม">จานวงกลม</option>
+                      <option value="จานหัวใจ">จานหัวใจ</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-gray-700 opacity-0">ปุ่ม:</label>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={applyFilter}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex-1"
+                      >
+                        กรอง
+                      </button>
+                      <button
+                        onClick={clearFilter}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex-1"
+                      >
+                        ล้าง
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <div className="flex items-center justify-center py-8">
@@ -484,7 +683,7 @@ export default function OrdersManagement() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {orders.map((order) => (
+                        {filteredOrders.map((order) => (
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.lot}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
