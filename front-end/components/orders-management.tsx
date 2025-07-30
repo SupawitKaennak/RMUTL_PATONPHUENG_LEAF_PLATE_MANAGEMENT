@@ -83,8 +83,33 @@ export default function OrdersManagement() {
       try {
         setLoading(true)
         const ordersData = await getOrders()
-        setOrders(ordersData)
-        setFilteredOrders(ordersData)
+        
+        // เรียงลำดับออเดอร์ตาม LOT number (A1 อยู่ล่างสุด, A2, A3... อยู่ข้างบน)
+        const sortedOrders = ordersData.sort((a, b) => {
+          // แยกตัวอักษรและตัวเลขจาก LOT
+          const getLotNumber = (lot: string) => {
+            const match = lot.match(/^([A-Z]+)(\d+)$/)
+            if (match) {
+              const [, prefix, number] = match
+              return { prefix, number: parseInt(number) }
+            }
+            return { prefix: '', number: 0 }
+          }
+          
+          const lotA = getLotNumber(a.lot)
+          const lotB = getLotNumber(b.lot)
+          
+          // ถ้า prefix เหมือนกัน ให้เรียงตามตัวเลข (มากไปน้อย)
+          if (lotA.prefix === lotB.prefix) {
+            return lotB.number - lotA.number
+          }
+          
+          // ถ้า prefix ต่างกัน ให้เรียงตามตัวอักษร
+          return lotA.prefix.localeCompare(lotB.prefix)
+        })
+        
+        setOrders(sortedOrders)
+        setFilteredOrders(sortedOrders)
       } catch (error) {
         console.error("Error fetching orders:", error)
         setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -168,6 +193,27 @@ export default function OrdersManagement() {
         order.qcQuantity.toLowerCase().includes(searchTerm)
       )
     }
+
+    // เรียงลำดับผลลัพธ์การกรองตาม LOT number (A1 อยู่ล่างสุด, A2, A3... อยู่ข้างบน)
+    filtered.sort((a, b) => {
+      const getLotNumber = (lot: string) => {
+        const match = lot.match(/^([A-Z]+)(\d+)$/)
+        if (match) {
+          const [, prefix, number] = match
+          return { prefix, number: parseInt(number) }
+        }
+        return { prefix: '', number: 0 }
+      }
+      
+      const lotA = getLotNumber(a.lot)
+      const lotB = getLotNumber(b.lot)
+      
+      if (lotA.prefix === lotB.prefix) {
+        return lotB.number - lotA.number
+      }
+      
+      return lotA.prefix.localeCompare(lotB.prefix)
+    })
 
     setFilteredOrders(filtered)
   }
@@ -286,7 +332,27 @@ export default function OrdersManagement() {
         ...newOrder,
       }
 
-      const updatedOrders = [orderWithId, ...orders]
+      // เพิ่มออเดอร์ใหม่และเรียงลำดับตาม LOT number
+      const updatedOrders = [orderWithId, ...orders].sort((a, b) => {
+        const getLotNumber = (lot: string) => {
+          const match = lot.match(/^([A-Z]+)(\d+)$/)
+          if (match) {
+            const [, prefix, number] = match
+            return { prefix, number: parseInt(number) }
+          }
+          return { prefix: '', number: 0 }
+        }
+        
+        const lotA = getLotNumber(a.lot)
+        const lotB = getLotNumber(b.lot)
+        
+        if (lotA.prefix === lotB.prefix) {
+          return lotB.number - lotA.number
+        }
+        
+        return lotA.prefix.localeCompare(lotB.prefix)
+      })
+      
       setOrders(updatedOrders)
       setFilteredOrders(updatedOrders)
       setIsAddOrderModalOpen(false)
