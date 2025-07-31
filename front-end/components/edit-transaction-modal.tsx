@@ -184,7 +184,7 @@ export default function EditTransactionModal({ isOpen, onClose, onSave, transact
               placeholder="เช่น 10 ใบ, 5 กก."
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="bg-white border-gray-300 text-white"
+              className="bg-white border-gray-300 text-black"
             />
           </div>
 
