@@ -1,7 +1,7 @@
 import admin from "firebase-admin"
 
 // ตรวจสอบว่าอยู่ใน development mode หรือไม่
-const isDevelopment = process.env.NODE_ENV === "development"
+const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV
 
 // Mock Firebase configuration สำหรับ development
 const mockServiceAccount = {
@@ -62,20 +62,24 @@ console.log("- Using Real Credentials:", hasFirebaseCredentials ? "✅" : "❌")
 if (!admin.apps.length) {
   try {
     if (hasFirebaseCredentials) {
-      // Initialize with real Firebase
+      // Initialize with real Firebase credentials
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
         projectId: serviceAccount.project_id,
       })
       console.log("🔥 Firebase Admin initialized with real credentials!")
     } else if (isDevelopment) {
-      // Initialize with Firestore emulator for development
-      process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080"
+      // Initialize with mock credentials for development
       admin.initializeApp({
         projectId: "demo-project",
       })
-      console.log("🧪 Firebase Admin initialized with emulator!")
-      console.log("📝 Make sure to run: firebase emulators:start --only firestore")
+      console.log("🧪 Firebase Admin initialized with mock credentials!")
+    } else {
+      // Production: ใช้ Application Default Credentials (ADC)
+      admin.initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT,
+      })
+      console.log("🚀 Firebase Admin initialized with Application Default Credentials!")
     }
   } catch (error) {
     if (isDevelopment) {
@@ -83,6 +87,10 @@ if (!admin.apps.length) {
       // ใน development ถ้า Firebase ไม่ทำงาน ให้ใช้ mock
     } else {
       console.error("❌ Firebase initialization failed:", error)
+      console.error("💡 Make sure you have set up authentication:")
+      console.error("   1. Use service account key file")
+      console.error("   2. Or set GOOGLE_APPLICATION_CREDENTIALS environment variable")
+      console.error("   3. Or use gcloud auth application-default login")
       process.exit(1)
     }
   }

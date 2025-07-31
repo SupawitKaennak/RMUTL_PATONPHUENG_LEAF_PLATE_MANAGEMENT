@@ -312,7 +312,7 @@ export default function IncomeExpenseTracker() {
                     <span className="ml-1 text-sm">กำลังรีเฟรช...</span>
                   ) : null}
                 </button>
-                                  <button
+                <button
                     onClick={toggleFilter}
                     className={`p-2 rounded-md flex items-center ${
                       isFilterOpen ? 'bg-blue-200' : 'bg-blue-100 hover:bg-blue-200'
@@ -320,7 +320,7 @@ export default function IncomeExpenseTracker() {
                     title="กรองข้อมูล"
                   >
                     <Filter className="h-5 w-5" />
-                  </button>
+                </button>
               </div>
 
               {hasTransactions && (

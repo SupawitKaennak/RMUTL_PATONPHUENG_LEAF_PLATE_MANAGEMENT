@@ -4,9 +4,23 @@ import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
 import path from "path"
+import fs from "fs"
 
-// โหลด environment variables จาก .env.local
-dotenv.config({ path: path.resolve(process.cwd(), ".env") })
+// ตรวจสอบและโหลด environment variables
+const envPath = path.resolve(process.cwd(), ".env")
+const envLocalPath = path.resolve(process.cwd(), ".env.local")
+
+// ลองโหลด .env.local ก่อน ถ้าไม่มีให้ใช้ .env
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath })
+  console.log("📁 Using .env.local configuration")
+} else if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath })
+  console.log("📁 Using .env configuration")
+} else {
+  console.warn("⚠️  No .env or .env.local file found. Using system environment variables.")
+  dotenv.config() // โหลดจาก system environment variables
+}
 
 // Import routes
 import materialsRouter from "./routes/materials"

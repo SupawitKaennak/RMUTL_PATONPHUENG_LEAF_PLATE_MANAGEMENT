@@ -9,7 +9,7 @@ export interface Material {
 
 export interface MaterialHistory {
   id: string
-  action: "เพิ่ม" | "ลด" | "ลบ" | "นำไปใช้" | "คืนวัตถุดิบ"
+  action: "เพิ่ม" | "ลบ" | "นำไปใช้" | "คืนวัตถุดิบ"
   date: string
   name: string
   quantity: number
