@@ -303,4 +303,32 @@ router.post("/quantity", async (req, res) => {
   }
 })
 
+// Helper function สำหรับอัปเดตหน่วยของแป้งข้าวเหนียว
+export async function updateStickyRiceUnit() {
+  try {
+    const materialName = "แป้งข้าวเหนียว"
+    const newUnit = "กรัม"
+    
+    // ค้นหาวัตถุดิบที่มีชื่อตรงกัน
+    const materialSnapshot = await db.collection("materials").where("name", "==", materialName).get()
+
+    if (materialSnapshot.empty) {
+      console.error(`❌ ไม่พบวัตถุดิบชื่อ "${materialName}"`)
+      return false
+    }
+
+    // อัปเดตหน่วยของวัตถุดิบทั้งหมดที่มีชื่อเดียวกัน
+    const updatePromises = materialSnapshot.docs.map(doc => 
+      doc.ref.update({ unit: newUnit })
+    )
+
+    await Promise.all(updatePromises)
+    console.log(`✅ อัปเดตหน่วยของ "${materialName}" เป็น "${newUnit}" สำเร็จ`)
+    return true
+  } catch (error) {
+    console.error("❌ เกิดข้อผิดพลาด:", error)
+    return false
+  }
+}
+
 export default router

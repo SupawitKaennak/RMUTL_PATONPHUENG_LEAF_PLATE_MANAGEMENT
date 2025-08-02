@@ -8,7 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import type { Order } from "@/types/order"
-import { updateProductionQuantity, calculateMaterialNeeded } from "@/services/order-service"
+import { updateProductionQuantity } from "@/services/order-service"
+import { MaterialContext } from "./material-provider"
+import { useContext } from "react"
+import { calculateMaterialCost, calculateTotalCost, calculateMaterialNeeded } from "@/lib/constants"
 
 interface EditOrderModalProps {
   isOpen: boolean
@@ -27,6 +30,9 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
   const [totalCost, setTotalCost] = useState(0)
   const [materialCost, setMaterialCost] = useState(0)
   const [isUpdating, setIsUpdating] = useState(false)
+  
+  // Get material context for price calculation
+  const materialContext = useContext(MaterialContext)
 
   // Populate form when order changes
   useEffect(() => {
@@ -49,14 +55,13 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
   useEffect(() => {
     if (order && productionQuantity !== originalProductionQuantity) {
       const newQuantityNum = Number.parseInt(productionQuantity) || 0
-      const materialNeeded = calculateMaterialNeeded(order.product, newQuantityNum)
-      const materialCostPerLeaf = 1.0
-      const newMaterialCost = materialNeeded * materialCostPerLeaf
+      const newMaterialCost = calculateMaterialCost(order.product, newQuantityNum, materialContext?.materials || [])
+      const newTotalCost = calculateTotalCost(newMaterialCost, electricityCost)
 
       setMaterialCost(newMaterialCost)
-      setTotalCost(newMaterialCost + electricityCost)
+      setTotalCost(newTotalCost)
     }
-  }, [productionQuantity, originalProductionQuantity, order, electricityCost])
+  }, [productionQuantity, originalProductionQuantity, order, electricityCost, materialContext])
 
   const handleSave = async () => {
     if (!order) return
@@ -70,9 +75,11 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
     setIsUpdating(true)
 
     try {
+      let result: any = null
+      
       // ถ้าจำนวนการผลิตเปลี่ยนแปลง ให้อัปเดตวัตถุดิบ
       if (productionQuantity !== originalProductionQuantity) {
-        const result = await updateProductionQuantity(
+        result = await updateProductionQuantity(
           order.id,
           Number.parseInt(productionQuantity),
         )
@@ -91,15 +98,15 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
         }
       }
 
-      // Create updated order object
+      // Create updated order object with data from backend response if available
       const updatedOrder: Order = {
         ...order,
         date,
         product,
         orderedQuantity: `${orderedQuantity} จาน`,
         remainingQuantity: productionQuantity ? `${productionQuantity} จาน` : "",
-        materialCost,
-        totalCost,
+        materialCost: result?.data?.materialCost || materialCost,
+        totalCost: result?.data?.totalCost || totalCost,
       }
 
       onSave(updatedOrder)

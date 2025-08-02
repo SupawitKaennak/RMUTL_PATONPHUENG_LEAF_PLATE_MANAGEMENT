@@ -24,6 +24,7 @@ import {
   updateElectricityCost,
   getDishRecipes,
 } from "@/services/order-service"
+import { calculateMaterialCost, calculateTotalCost } from "@/lib/constants"
 
 export default function OrdersManagement() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -62,23 +63,7 @@ export default function OrdersManagement() {
   // Get dish recipes for display
   const dishRecipes = getDishRecipes()
 
-  // Function to calculate material cost
-  const calculateMaterialCost = (productType: string, quantity: number): number => {
-    const recipe = dishRecipes[productType as keyof typeof dishRecipes]
-    if (!recipe) return 0
-    
-    let totalCost = 0
-    for (const [materialName, materialAmount] of Object.entries(recipe)) {
-      const materialPrice = materialContext?.materials?.find(m => m.name === materialName)?.pricePerUnit || 0
-      totalCost += materialAmount * quantity * materialPrice
-    }
-    return totalCost
-  }
-
-  // Function to calculate total cost
-  const calculateTotalCost = (materialCost: number, electricityCost: number): number => {
-    return materialCost + electricityCost
-  }
+  // ใช้ฟังก์ชันจาก constants แทน
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -397,6 +382,31 @@ export default function OrdersManagement() {
       if (materialContext?.refreshMaterials) {
         await materialContext.refreshMaterials()
       }
+      
+      // Refetch orders to ensure UI is up to date
+      const refreshedOrders = await getOrders()
+      const sortedOrders = refreshedOrders.sort((a, b) => {
+        const getLotNumber = (lot: string) => {
+          const match = lot.match(/^([A-Z]+)(\d+)$/)
+          if (match) {
+            const [, prefix, number] = match
+            return { prefix, number: parseInt(number) }
+          }
+          return { prefix: '', number: 0 }
+        }
+        
+        const lotA = getLotNumber(a.lot)
+        const lotB = getLotNumber(b.lot)
+        
+        if (lotA.prefix === lotB.prefix) {
+          return lotB.number - lotA.number
+        }
+        
+        return lotA.prefix.localeCompare(lotB.prefix)
+      })
+      
+      setOrders(sortedOrders)
+      setFilteredOrders(sortedOrders)
     } catch (error) {
       console.error("Error updating order:", error)
       setError("ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -446,7 +456,7 @@ export default function OrdersManagement() {
     try {
       // Calculate new material cost and total cost
       const quantity = updatedOrder.remainingQuantity ? parseInt(updatedOrder.remainingQuantity.replace(" จาน", "")) : 0
-      const materialCost = calculateMaterialCost(updatedOrder.product, quantity)
+      const materialCost = calculateMaterialCost(updatedOrder.product, quantity, materialContext?.materials || [])
       const totalCost = calculateTotalCost(materialCost, updatedOrder.electricityCost)
 
       const orderWithUpdatedCosts = {
@@ -476,7 +486,7 @@ export default function OrdersManagement() {
       if (result.success) {
         // Calculate new material cost
         const quantity = parseInt(productionQuantity)
-        const materialCost = calculateMaterialCost(order.product, quantity)
+        const materialCost = calculateMaterialCost(order.product, quantity, materialContext?.materials || [])
         const totalCost = calculateTotalCost(materialCost, order.electricityCost)
 
         // Update the order in local state
@@ -523,7 +533,7 @@ export default function OrdersManagement() {
       if (success) {
         // Calculate new total cost
         const quantity = order.remainingQuantity ? parseInt(order.remainingQuantity.replace(" จาน", "")) : 0
-        const materialCost = calculateMaterialCost(order.product, quantity)
+        const materialCost = calculateMaterialCost(order.product, quantity, materialContext?.materials || [])
         const totalCost = calculateTotalCost(materialCost, totalElectricityCost)
 
         // Update the order in local state
@@ -832,14 +842,14 @@ export default function OrdersManagement() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {(() => {
                                 const quantity = order.remainingQuantity ? parseInt(order.remainingQuantity.replace(" จาน", "")) : 0
-                                const materialCost = calculateMaterialCost(order.product, quantity)
+                                const materialCost = calculateMaterialCost(order.product, quantity, materialContext?.materials || [])
                                 return `${materialCost.toFixed(2)} บาท`
                               })()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {(() => {
                                 const quantity = order.remainingQuantity ? parseInt(order.remainingQuantity.replace(" จาน", "")) : 0
-                                const materialCost = calculateMaterialCost(order.product, quantity)
+                                const materialCost = calculateMaterialCost(order.product, quantity, materialContext?.materials || [])
                                 const totalCost = calculateTotalCost(materialCost, order.electricityCost)
                                 return `${totalCost.toFixed(2)} บาท`
                               })()}

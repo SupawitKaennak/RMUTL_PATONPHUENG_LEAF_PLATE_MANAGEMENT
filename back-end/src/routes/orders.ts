@@ -21,7 +21,7 @@ router.use((req, res, next) => {
   next()
 })
 
-// กำหนดสูตรการผลิต
+// กำหนดสูตรการผลิต - ใช้ร่วมกันกับ front-end
 const DISH_RECIPES = {
   จานสี่เหลี่ยม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
   จานวงกลม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
@@ -387,6 +387,7 @@ router.post("/production", async (req, res) => {
   }
 })
 
+// ฟังก์ชันคำนวณวัตถุดิบที่ต้องการ - ใช้ร่วมกันกับ front-end
 function calculateMaterialNeeded(dishType: string, quantity: number): { [material: string]: number } {
   const recipe = DISH_RECIPES[dishType as keyof typeof DISH_RECIPES]
   if (!recipe) return {}

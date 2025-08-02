@@ -1,31 +1,14 @@
 import { apiClient } from "./api-client"
 import type { Order } from "@/types/order"
-
-// กำหนดสูตรการผลิต
-const DISH_RECIPES = {
-  จานสี่เหลี่ยม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
-  จานวงกลม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
-  จานหัวใจ: { ใบตองตึง: 5, แป้งข้าวเหนียว: 2 },
-}
+import { DISH_RECIPES, calculateMaterialNeeded } from "@/lib/constants"
 
 export async function updateProductionQuantity(orderId: string, newQuantity: number) {
   try {
-    const response = await fetch(`/api/orders/${orderId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer hardcodedtoken123"
-      },
-      body: JSON.stringify({ remainingQuantity: `${newQuantity} จาน` }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "เกิดข้อผิดพลาด");
-    }
-    return await response.json();
+    const response = await apiClient.updateOrder(orderId, { remainingQuantity: `${newQuantity} จาน` })
+    return response
   } catch (error) {
-    console.error("Error updating production quantity:", error);
-    throw error;
+    console.error("Error updating production quantity:", error)
+    throw error
   }
 }
 
@@ -115,15 +98,4 @@ export const updateElectricityCost = async (
 
 export const getDishRecipes = () => {
   return DISH_RECIPES
-}
-
-export const calculateMaterialNeeded = (dishType: string, quantity: number): { [material: string]: number } => {
-  const recipe = DISH_RECIPES[dishType as keyof typeof DISH_RECIPES]
-  if (!recipe) return {}
-  
-  const result: { [material: string]: number } = {}
-  for (const [material, amount] of Object.entries(recipe)) {
-    result[material] = amount * quantity
-  }
-  return result
 }
