@@ -52,7 +52,11 @@ export const getMaterialHistory = async (): Promise<MaterialHistory[]> => {
 export const addMaterialHistory = async (history: Omit<MaterialHistory, "id">): Promise<MaterialHistory> => {
   try {
     const response = await apiClient.addMaterialHistory(history)
-    return response.data as MaterialHistory
+    const savedHistory = response.data as { id: string }
+    return {
+      id: savedHistory.id,
+      ...history,
+    } as MaterialHistory
   } catch (error) {
     console.error("Error adding material history:", error)
     throw error

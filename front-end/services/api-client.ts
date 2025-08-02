@@ -10,30 +10,29 @@ interface ApiResponse<T = any> {
 
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    const url = `${API_BASE_URL}${endpoint}`
-
-    const token = "hardcodedtoken123" // Hard-coded Bearer token
-
-    const config: RequestInit = {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-        ...options.headers,
-      },
-      ...options,
-    }
-
     try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api${endpoint}`
+      
+      const config: RequestInit = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer hardcodedtoken123",
+          ...options.headers,
+        },
+        ...options,
+      }
+
       const response = await fetch(url, config)
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`)
+        console.error(`API Error (${response.status}):`, data)
+        throw new Error(data.error || `HTTP ${response.status}`)
       }
 
       return data
     } catch (error) {
-      console.error(`API Error (${endpoint}):`, error)
+      console.error("API request failed:", error)
       throw error
     }
   }
@@ -85,7 +84,13 @@ class ApiClient {
   async addMaterialHistory(history: any) {
     return this.request("/material-history", {
       method: "POST",
-      body: JSON.stringify(history),
+      body: JSON.stringify({
+        action: history.action,
+        date: history.date,
+        name: history.name,
+        quantity: history.quantity,
+        unit: history.unit,
+      }),
     })
   }
 

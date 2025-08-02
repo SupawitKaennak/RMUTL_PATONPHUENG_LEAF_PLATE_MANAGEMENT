@@ -236,17 +236,18 @@ export default function MaterialsManagement() {
         }
 
         // Add the history entry to Firestore
-        const historyId = await addMaterialHistory(historyEntry)
+        try {
+            // บันทึกประวัติลงใน Firestore
+            const savedHistory = await addMaterialHistory(historyEntry)
 
-        // Add the history to local state with the new ID
-        const historyWithId: MaterialHistory = {
-          id: historyId,
-          ...historyEntry,
-        }
-
-        const updatedHistory = [historyWithId, ...materialHistory]
-        setMaterialHistory(updatedHistory)
-        setFilteredMaterialHistory(updatedHistory)
+            // เพิ่มประวัติใน local state
+            const updatedHistory = [savedHistory, ...materialHistory]
+            setMaterialHistory(updatedHistory)
+            setFilteredMaterialHistory(updatedHistory)
+          } catch (historyError) {
+            console.error("Error adding material history:", historyError)
+            // ไม่หยุดการลบแม้ว่าประวัติจะบันทึกไม่สำเร็จ
+          }
       }
 
       // ปิด modal หลังจากบันทึกข้อมูลเสร็จ
@@ -282,31 +283,47 @@ export default function MaterialsManagement() {
             unit: materialToDelete.unit,
           }
 
-          // บันทึกประวัติลงใน Firestore
-          const historyId = await addMaterialHistory(historyEntry)
-
-          // เพิ่มประวัติใน local state
-          const historyWithId: MaterialHistory = {
-            id: historyId,
-            ...historyEntry,
+          // ตรวจสอบข้อมูลก่อนส่ง
+          if (!historyEntry.action || !historyEntry.date || !historyEntry.name || historyEntry.quantity === undefined || !historyEntry.unit) {
+            console.error("Invalid history data:", historyEntry)
+            setError("ข้อมูลไม่ครบถ้วน กรุณาลองใหม่อีกครั้ง")
+            return
           }
-          const updatedHistory = [historyWithId, ...materialHistory]
-          setMaterialHistory(updatedHistory)
-          setFilteredMaterialHistory(updatedHistory)
+
+          try {
+            // บันทึกประวัติลงใน Firestore
+            const savedHistory = await addMaterialHistory(historyEntry)
+
+            // เพิ่มประวัติใน local state
+            const updatedHistory = [savedHistory, ...materialHistory]
+            setMaterialHistory(updatedHistory)
+            setFilteredMaterialHistory(updatedHistory)
+          } catch (historyError) {
+            console.error("Error adding material history:", historyError)
+            // ไม่หยุดการลบแม้ว่าประวัติจะบันทึกไม่สำเร็จ
+          }
+
+          try {
+            // ลบข้อมูลจาก Firestore
+            await deleteMaterial(selectedMaterialId)
+
+            // ลบข้อมูลจาก local state
+            setMaterials(materials.filter((material) => material.id !== selectedMaterialId))
+            console.log("Material deleted successfully")
+
+            // ปิด modal
+            setIsDeleteModalOpen(false)
+            setSelectedMaterialId(null)
+            setError(null) // ล้างข้อผิดพลาดเก่า
+          } catch (deleteError) {
+            console.error("Error deleting material:", deleteError)
+            setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+          }
+        } else {
+          setError("ไม่พบข้อมูลวัตถุดิบที่ต้องการลบ")
         }
-
-        // ลบข้อมูลจาก Firestore
-        await deleteMaterial(selectedMaterialId)
-
-        // ลบข้อมูลจาก local state
-        setMaterials(materials.filter((material) => material.id !== selectedMaterialId))
-        console.log("Material deleted successfully")
-
-        // ปิด modal
-        setIsDeleteModalOpen(false)
-        setSelectedMaterialId(null)
       } catch (error) {
-        console.error("Error deleting material:", error)
+        console.error("Error in delete process:", error)
         setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
       }
     }
@@ -549,7 +566,7 @@ export default function MaterialsManagement() {
                         <thead className="bg-blue-100">
                           <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              วันที่
+                              ว/ด/ป
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               การดำเนินการ

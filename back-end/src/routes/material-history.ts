@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
   try {
     const snapshot = await db.collection("materialHistory").get()
     const history: MaterialHistory[] = snapshot.docs.map(
-      (doc) =>
+      (doc: any) =>
         ({
           id: doc.id,
           ...doc.data(),
@@ -52,24 +52,29 @@ router.post("/", async (req, res) => {
   try {
     const { action, date, name, quantity, unit } = req.body
 
-    if (!action || !date || !name || !quantity || !unit) {
+    if (!action || !date || !name || quantity === undefined || !unit) {
       return res.status(400).json({
         success: false,
         error: "Missing required fields",
       })
     }
 
-    const docRef = await db.collection("materialHistory").add({
+    const historyData = {
       action,
       date,
       name,
       quantity,
       unit,
-    })
+    }
+
+    const docRef = await db.collection("materialHistory").add(historyData)
 
     res.status(201).json({
       success: true,
-      data: { id: docRef.id },
+      data: { 
+        id: docRef.id,
+        ...historyData
+      },
       message: "Material history added successfully",
     })
   } catch (error) {
