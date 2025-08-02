@@ -195,7 +195,7 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
                   <span className="ml-2 text-sm">จาน</span>
                 </div>
                 {productionQuantity !== originalProductionQuantity && (
-                  <p className="text-xs text-blue-500 mt-1">* ระบบจะคืนใบตองตึงเดิมและหักใหม่ตามจำนวนที่แก้ไข</p>
+                  <p className="text-xs text-blue-500 mt-1">* ระบบจะคืนวัตถุดิบเดิมและหักใหม่ตามจำนวนที่แก้ไข</p>
                 )}
               </div>
             </div>
@@ -212,7 +212,7 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
                   value={order.qcQuantity}
                   disabled
                   className="bg-gray-100"
-                  placeholder="กรอกจำนวนใบตองตึงที่ผ่านจาก CNN"
+                  placeholder="กรอกจำนวนที่ผ่านจาก QC"
                 />
               </div>
 

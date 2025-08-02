@@ -3,9 +3,9 @@ import type { Order } from "@/types/order"
 
 // กำหนดสูตรการผลิต
 const DISH_RECIPES = {
-  จานสี่เหลี่ยม: 4,
-  จานวงกลม: 4,
-  จานหัวใจ: 5,
+  จานสี่เหลี่ยม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
+  จานวงกลม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
+  จานหัวใจ: { ใบตองตึง: 5, แป้งข้าวเหนียว: 2 },
 }
 
 export async function updateProductionQuantity(orderId: string, newQuantity: number) {
@@ -117,7 +117,13 @@ export const getDishRecipes = () => {
   return DISH_RECIPES
 }
 
-export const calculateMaterialNeeded = (dishType: string, quantity: number): number => {
-  const materialPerDish = DISH_RECIPES[dishType as keyof typeof DISH_RECIPES] || 0
-  return materialPerDish * quantity
+export const calculateMaterialNeeded = (dishType: string, quantity: number): { [material: string]: number } => {
+  const recipe = DISH_RECIPES[dishType as keyof typeof DISH_RECIPES]
+  if (!recipe) return {}
+  
+  const result: { [material: string]: number } = {}
+  for (const [material, amount] of Object.entries(recipe)) {
+    result[material] = amount * quantity
+  }
+  return result
 }

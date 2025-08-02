@@ -23,9 +23,9 @@ router.use((req, res, next) => {
 
 // กำหนดสูตรการผลิต
 const DISH_RECIPES = {
-  จานสี่เหลี่ยม: 4,
-  จานวงกลม: 4,
-  จานหัวใจ: 5,
+  จานสี่เหลี่ยม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
+  จานวงกลม: { ใบตองตึง: 4, แป้งข้าวเหนียว: 2 },
+  จานหัวใจ: { ใบตองตึง: 5, แป้งข้าวเหนียว: 2 },
 }
 
 // GET /api/orders - ดึงข้อมูลออเดอร์ทั้งหมด
@@ -123,71 +123,86 @@ router.put("/:id", async (req, res) => {
       const newQty = parseInt((remainingQuantity || "0").replace(/\D/g, ""))
       const productType = oldOrder?.product
       const diff = Math.abs(newQty - oldQty)
-      const materialNeeded = calculateMaterialNeeded(productType, diff)
+      const materialsNeeded = calculateMaterialNeeded(productType, diff)
 
-      // ดึงราคาต่อหน่วยจริงจากฐานข้อมูลวัตถุดิบ
-      const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
-      let materialCostPerLeaf = 0.20
-      if (!materialSnapshot.empty) {
-        const materialDoc = materialSnapshot.docs[0]
-        const currentQuantity = materialDoc.data().quantity
-        // ดึงราคาจาก database
-        materialCostPerLeaf = materialDoc.data().pricePerUnit || 0.20
+      let totalMaterialCost = 0
 
-        if (newQty < oldQty) {
-          // คืนวัตถุดิบ
-          await materialDoc.ref.update({
-            quantity: currentQuantity + materialNeeded,
-          })
-          
-          // เพิ่มประวัติการคืนวัตถุดิบ
-          await db.collection("materialHistory").add({
-            action: "คืนวัตถุดิบ",
-            date: new Date().toLocaleDateString("th-TH", {
-              day: "2-digit",
-              month: "2-digit", 
-              year: "2-digit",
-            }),
-            name: "ใบตองตึง",
-            quantity: materialNeeded,
-            unit: "ใบ",
-          })
-        } else if (newQty > oldQty) {
-          // ใช้วัตถุดิบเพิ่ม
-          if (currentQuantity < materialNeeded) {
-            return res.status(400).json({
-              success: false,
-              error: `ใบตองตึงไม่เพียงพอ ต้องการเพิ่มอีก ${materialNeeded} ใบ แต่มีอยู่ ${currentQuantity} ใบ`,
+      // จัดการวัตถุดิบแต่ละชนิด
+      for (const [materialName, materialAmount] of Object.entries(materialsNeeded)) {
+        const materialSnapshot = await db.collection("materials").where("name", "==", materialName).get()
+        
+        if (!materialSnapshot.empty) {
+          const materialDoc = materialSnapshot.docs[0]
+          const currentQuantity = materialDoc.data().quantity
+          const materialPrice = materialDoc.data().pricePerUnit || 0
+
+          if (newQty < oldQty) {
+            // คืนวัตถุดิบ
+            await materialDoc.ref.update({
+              quantity: currentQuantity + materialAmount,
+            })
+            
+            // เพิ่มประวัติการคืนวัตถุดิบ
+            await db.collection("materialHistory").add({
+              action: "คืนวัตถุดิบ",
+              date: new Date().toLocaleDateString("th-TH", {
+                day: "2-digit",
+                month: "2-digit", 
+                year: "2-digit",
+              }),
+              name: materialName,
+              quantity: materialAmount,
+              unit: materialDoc.data().unit || "ชิ้น",
+            })
+          } else if (newQty > oldQty) {
+            // ใช้วัตถุดิบเพิ่ม
+            if (currentQuantity < materialAmount) {
+              return res.status(400).json({
+                success: false,
+                error: `${materialName}ไม่เพียงพอ ต้องการเพิ่มอีก ${materialAmount} ${materialDoc.data().unit || "ชิ้น"} แต่มีอยู่ ${currentQuantity} ${materialDoc.data().unit || "ชิ้น"}`,
+              })
+            }
+            await materialDoc.ref.update({
+              quantity: currentQuantity - materialAmount,
+            })
+            
+            // เพิ่มประวัติการใช้วัตถุดิบ
+            await db.collection("materialHistory").add({
+              action: "นำไปใช้",
+              date: new Date().toLocaleDateString("th-TH", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit", 
+              }),
+              name: materialName,
+              quantity: materialAmount,
+              unit: materialDoc.data().unit || "ชิ้น",
             })
           }
-          await materialDoc.ref.update({
-            quantity: currentQuantity - materialNeeded,
-          })
-          
-          // เพิ่มประวัติการใช้วัตถุดิบ
-          await db.collection("materialHistory").add({
-            action: "นำไปใช้",
-            date: new Date().toLocaleDateString("th-TH", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit", 
-            }),
-            name: "ใบตองตึง",
-            quantity: materialNeeded,
-            unit: "ใบ",
-          })
+
+          // คำนวณต้นทุนวัตถุดิบ
+          totalMaterialCost += materialAmount * materialPrice
         }
       }
 
-      // คำนวณต้นทุนวัตถุดิบใหม่
-      const totalMaterialNeeded = calculateMaterialNeeded(productType, newQty)
-      const totalMaterialCost = totalMaterialNeeded * (materialCostPerLeaf || 0.20)
+      // คำนวณต้นทุนวัตถุดิบทั้งหมดสำหรับจำนวนใหม่
+      const totalMaterialsNeeded = calculateMaterialNeeded(productType, newQty)
+      let totalMaterialCostForNewQty = 0
+      
+      for (const [materialName, materialAmount] of Object.entries(totalMaterialsNeeded)) {
+        const materialSnapshot = await db.collection("materials").where("name", "==", materialName).get()
+        if (!materialSnapshot.empty) {
+          const materialDoc = materialSnapshot.docs[0]
+          const materialPrice = materialDoc.data().pricePerUnit || 0
+          totalMaterialCostForNewQty += materialAmount * materialPrice
+        }
+      }
 
       updateObj.remainingQuantity = remainingQuantity
-      updateObj.materialCost = totalMaterialCost
+      updateObj.materialCost = totalMaterialCostForNewQty
       // Calculate totalCost as sum of materialCost and electricityCost
       const electricityCostValue = electricityCost !== undefined ? electricityCost : oldOrder?.electricityCost || 0
-      updateObj.totalCost = totalMaterialCost + electricityCostValue
+      updateObj.totalCost = totalMaterialCostForNewQty + electricityCostValue
     }
 
     // อัปเดต machineId, electricityCost ถ้ามี
@@ -226,22 +241,22 @@ router.delete("/:id", async (req, res) => {
     if (orderDoc.exists) {
       const orderData = orderDoc.data() as Order
 
-      // คืนใบตองตึงถ้ามีการผลิตแล้ว
+      // คืนวัตถุดิบถ้ามีการผลิตแล้ว
       if (orderData.remainingQuantity) {
         const quantityMatch = orderData.remainingQuantity.match(/\d+/)
         if (quantityMatch) {
           const producedQuantity = Number.parseInt(quantityMatch[0])
-          const materialNeeded = calculateMaterialNeeded(orderData.product, producedQuantity)
+          const materialsNeeded = calculateMaterialNeeded(orderData.product, producedQuantity)
 
-          if (materialNeeded > 0) {
-            // คืนใบตองตึง
-            const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
+          // คืนวัตถุดิบแต่ละชนิด
+          for (const [materialName, materialAmount] of Object.entries(materialsNeeded)) {
+            const materialSnapshot = await db.collection("materials").where("name", "==", materialName).get()
 
             if (!materialSnapshot.empty) {
               const materialDoc = materialSnapshot.docs[0]
               const currentQuantity = materialDoc.data().quantity
               await materialDoc.ref.update({
-                quantity: currentQuantity + materialNeeded,
+                quantity: currentQuantity + materialAmount,
               })
               
               // เพิ่มประวัติการคืนวัตถุดิบ
@@ -252,9 +267,9 @@ router.delete("/:id", async (req, res) => {
                   month: "2-digit",
                   year: "2-digit",
                 }),
-                name: "ใบตองตึง",
-                quantity: materialNeeded,
-                unit: "ใบ",
+                name: materialName,
+                quantity: materialAmount,
+                unit: materialDoc.data().unit || "ชิ้น",
               })
             }
           }
@@ -291,56 +306,63 @@ router.post("/production", async (req, res) => {
     }
 
     const quantityNum = Number.parseInt(productionQuantity) || 0
-    const materialNeeded = calculateMaterialNeeded(productType, quantityNum)
+    const materialsNeeded = calculateMaterialNeeded(productType, quantityNum)
 
-    if (materialNeeded === 0) {
+    if (Object.keys(materialsNeeded).length === 0) {
       return res.status(400).json({
         success: false,
         message: `ไม่พบสูตรการผลิตสำหรับ ${productType}`,
       })
     }
 
-    // ตรวจสอบและลดจำนวนใบตองตึงในคลัง
-    const materialSnapshot = await db.collection("materials").where("name", "==", "ใบตองตึง").get()
+    let totalMaterialCost = 0
+    const materialDetails: string[] = []
 
-    if (materialSnapshot.empty) {
-      return res.status(400).json({
-        success: false,
-        message: "ไม่พบใบตองตึงในคลัง",
+    // ตรวจสอบและลดจำนวนวัตถุดิบแต่ละชนิดในคลัง
+    for (const [materialName, materialAmount] of Object.entries(materialsNeeded)) {
+      const materialSnapshot = await db.collection("materials").where("name", "==", materialName).get()
+
+      if (materialSnapshot.empty) {
+        return res.status(400).json({
+          success: false,
+          message: `ไม่พบ${materialName}ในคลัง`,
+        })
+      }
+
+      const materialDoc = materialSnapshot.docs[0]
+      const currentQuantity = materialDoc.data().quantity
+      const materialUnit = materialDoc.data().unit || "ชิ้น"
+
+      if (currentQuantity < materialAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `${materialName}ไม่เพียงพอ ต้องการ ${materialAmount} ${materialUnit} มีอยู่ ${currentQuantity} ${materialUnit}`,
+        })
+      }
+
+      // ลดจำนวนวัตถุดิบ
+      await materialDoc.ref.update({
+        quantity: currentQuantity - materialAmount,
       })
-    }
 
-    const materialDoc = materialSnapshot.docs[0]
-    const currentQuantity = materialDoc.data().quantity
-
-    if (currentQuantity < materialNeeded) {
-      return res.status(400).json({
-        success: false,
-        message: `ใบตองตึงไม่เพียงพอ ต้องการ ${materialNeeded} ใบ มีอยู่ ${currentQuantity} ใบ`,
+      // เพิ่มประวัติการใช้วัตถุดิบ
+      await db.collection("materialHistory").add({
+        action: "นำไปใช้",
+        date: new Date().toLocaleDateString("th-TH", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        }),
+        name: materialName,
+        quantity: materialAmount,
+        unit: materialUnit,
       })
+
+      // คำนวณต้นทุนวัตถุดิบ
+      const materialPrice = materialDoc.data().pricePerUnit || 0
+      totalMaterialCost += materialAmount * materialPrice
+      materialDetails.push(`${materialName} ${materialAmount} ${materialUnit}`)
     }
-
-    // ลดจำนวนใบตองตึง
-    await materialDoc.ref.update({
-      quantity: currentQuantity - materialNeeded,
-    })
-
-    // เพิ่มประวัติการใช้วัตถุดิบ
-    await db.collection("materialHistory").add({
-      action: "นำไปใช้",
-      date: new Date().toLocaleDateString("th-TH", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-      }),
-      name: "ใบตองตึง",
-      quantity: materialNeeded,
-      unit: "ใบ",
-    })
-
-    // ดึงราคาต่อหน่วยจริงจากฐานข้อมูลวัตถุดิบ
-    const materialCostPerLeaf = materialDoc.data().pricePerUnit || 0.20
-    const totalMaterialCost = materialNeeded * materialCostPerLeaf
 
     // อัปเดตออเดอร์
     await db
@@ -354,7 +376,7 @@ router.post("/production", async (req, res) => {
 
     res.json({
       success: true,
-      message: `ผลิต ${productType} ${quantityNum} จาน สำเร็จ ใช้ใบตองตึง ${materialNeeded} ใบ`,
+      message: `ผลิต ${productType} ${quantityNum} จาน สำเร็จ ใช้วัตถุดิบ: ${materialDetails.join(", ")}`,
     })
   } catch (error) {
     console.error("Error adding production quantity:", error)
@@ -365,9 +387,15 @@ router.post("/production", async (req, res) => {
   }
 })
 
-function calculateMaterialNeeded(dishType: string, quantity: number): number {
-  const materialPerDish = DISH_RECIPES[dishType as keyof typeof DISH_RECIPES] || 0
-  return materialPerDish * quantity
+function calculateMaterialNeeded(dishType: string, quantity: number): { [material: string]: number } {
+  const recipe = DISH_RECIPES[dishType as keyof typeof DISH_RECIPES]
+  if (!recipe) return {}
+  
+  const result: { [material: string]: number } = {}
+  for (const [material, amount] of Object.entries(recipe)) {
+    result[material] = amount * quantity
+  }
+  return result
 }
 
 export default router

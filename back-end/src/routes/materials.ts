@@ -102,9 +102,22 @@ router.post("/", validateMaterial, async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params
-    const updateData = req.body
+    const { name, quantity, unit, pricePerUnit, date } = req.body
 
-    await db.collection("materials").doc(id).update(updateData)
+    const materialRef = db.collection("materials").doc(id)
+    const materialDoc = await materialRef.get()
+
+    if (!materialDoc.exists) {
+      return res.status(404).json({ success: false, error: "Material not found" })
+    }
+
+    await materialRef.update({
+      name,
+      quantity,
+      unit,
+      pricePerUnit,
+      date,
+    })
 
     res.json({
       success: true,
@@ -115,6 +128,48 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to update material",
+    })
+  }
+})
+
+// PATCH /api/materials/update-unit - อัปเดตหน่วยของแป้งข้าวเหนียว
+router.patch("/update-unit", async (req, res) => {
+  try {
+    const { materialName, newUnit } = req.body
+
+    if (!materialName || !newUnit) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing materialName or newUnit",
+      })
+    }
+
+    // ค้นหาวัตถุดิบที่มีชื่อตรงกัน
+    const materialSnapshot = await db.collection("materials").where("name", "==", materialName).get()
+
+    if (materialSnapshot.empty) {
+      return res.status(404).json({
+        success: false,
+        error: `ไม่พบวัตถุดิบชื่อ "${materialName}"`,
+      })
+    }
+
+    // อัปเดตหน่วยของวัตถุดิบทั้งหมดที่มีชื่อเดียวกัน
+    const updatePromises = materialSnapshot.docs.map(doc => 
+      doc.ref.update({ unit: newUnit })
+    )
+
+    await Promise.all(updatePromises)
+
+    res.json({
+      success: true,
+      message: `อัปเดตหน่วยของ "${materialName}" เป็น "${newUnit}" สำเร็จ`,
+    })
+  } catch (error) {
+    console.error("Error updating material unit:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to update material unit",
     })
   }
 })

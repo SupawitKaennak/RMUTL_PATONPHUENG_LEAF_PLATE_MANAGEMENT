@@ -70,6 +70,13 @@ class ApiClient {
     })
   }
 
+  async updateMaterialUnit(materialName: string, newUnit: string) {
+    return this.request("/materials/update-unit", {
+      method: "PATCH",
+      body: JSON.stringify({ materialName, newUnit }),
+    })
+  }
+
   // Material History API
   async getMaterialHistory() {
     return this.request("/material-history")

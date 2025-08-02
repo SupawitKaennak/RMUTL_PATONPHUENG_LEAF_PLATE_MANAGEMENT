@@ -14,7 +14,7 @@ export const getMaterials = async (): Promise<Material[]> => {
 export const addMaterial = async (material: Omit<Material, "id">): Promise<string> => {
   try {
     const response = await apiClient.addMaterial(material)
-    return response.data?.id || ""
+    return (response.data as { id: string })?.id || ""
   } catch (error) {
     console.error("Error adding material:", error)
     throw error
@@ -75,6 +75,16 @@ export const decreaseMaterialQuantity = async (materialName: string, quantityToD
     return response.success
   } catch (error) {
     console.error("Error decreasing material quantity:", error)
+    return false
+  }
+}
+
+export const updateMaterialUnit = async (materialName: string, newUnit: string): Promise<boolean> => {
+  try {
+    const response = await apiClient.updateMaterialUnit(materialName, newUnit)
+    return response.success
+  } catch (error) {
+    console.error("Error updating material unit:", error)
     return false
   }
 }

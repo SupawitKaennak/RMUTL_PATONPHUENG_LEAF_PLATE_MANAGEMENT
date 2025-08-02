@@ -64,12 +64,15 @@ export default function OrdersManagement() {
 
   // Function to calculate material cost
   const calculateMaterialCost = (productType: string, quantity: number): number => {
-    const materialPerDish = dishRecipes[productType as keyof typeof dishRecipes] || 0
-    const materialNeeded = materialPerDish * quantity
+    const recipe = dishRecipes[productType as keyof typeof dishRecipes]
+    if (!recipe) return 0
     
-    // ดึงราคาจาก material context
-    const materialPrice = materialContext?.materials?.find(m => m.name === "ใบตองตึง")?.pricePerUnit || 0.20
-    return materialNeeded * materialPrice
+    let totalCost = 0
+    for (const [materialName, materialAmount] of Object.entries(recipe)) {
+      const materialPrice = materialContext?.materials?.find(m => m.name === materialName)?.pricePerUnit || 0
+      totalCost += materialAmount * quantity * materialPrice
+    }
+    return totalCost
   }
 
   // Function to calculate total cost
@@ -626,14 +629,29 @@ export default function OrdersManagement() {
               <Card className="p-4 bg-blue-50">
                 <h3 className="text-lg font-semibold mb-2 text-blue-800">สูตรการผลิต</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  {Object.entries(dishRecipes).map(([dishType, leavesNeeded]) => (
-                    <div key={dishType} className="flex justify-between items-center">
+                  {Object.entries(dishRecipes).map(([dishType, recipe]) => (
+                    <div key={dishType} className="flex flex-col">
                       <span className="font-medium">{dishType}:</span>
-                      <span className="text-blue-600">{leavesNeeded} ใบตองตึง/จาน</span>
+                      <div className="text-blue-600">
+                        {Object.entries(recipe).map(([material, amount]) => {
+                          // กำหนดหน่วยตามชื่อวัตถุดิบ
+                          const getUnit = (materialName: string) => {
+                            if (materialName === "ใบตองตึง") return "ใบ"
+                            if (materialName === "แป้งข้าวเหนียว") return "กรัม"
+                            return materialContext?.materials?.find(m => m.name === materialName)?.unit || "ชิ้น"
+                          }
+                          
+                          return (
+                            <div key={material} className="text-sm">
+                              {material} {amount} {getUnit(material)}
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-2">* เมื่อแก้ไขหรือลบออเดอร์ ระบบจะคืนใบตองตึงกลับเข้าคลังโดยอัตโนมัติ</p>
+                <p className="text-xs text-gray-600 mt-2">* เมื่อแก้ไขหรือลบออเดอร์ ระบบจะคืนวัตถุดิบกลับเข้าคลังโดยอัตโนมัติ</p>
               </Card>
             </div>
 
@@ -923,9 +941,9 @@ export default function OrdersManagement() {
                     <SelectValue placeholder="เลือกผลิตภัณฑ์" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="จานสี่เหลี่ยม">จานสี่เหลี่ยม (ใช้ใบตองตึง 4 ใบ/จาน)</SelectItem>
-                    <SelectItem value="จานวงกลม">จานวงกลม (ใช้ใบตองตึง 4 ใบ/จาน)</SelectItem>
-                    <SelectItem value="จานหัวใจ">จานหัวใจ (ใช้ใบตองตึง 5 ใบ/จาน)</SelectItem>
+                <SelectItem value="จานสี่เหลี่ยม">จานสี่เหลี่ยม (ใบตองตึง 4 ใบ, แป้งข้าวเหนียว 2 กรัม)</SelectItem>
+                <SelectItem value="จานวงกลม">จานวงกลม (ใบตองตึง 4 ใบ, แป้งข้าวเหนียว 2 กรัม)</SelectItem>
+                <SelectItem value="จานหัวใจ">จานหัวใจ (ใบตองตึง 5 ใบ, แป้งข้าวเหนียว 2 กรัม)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -987,7 +1005,7 @@ export default function OrdersManagement() {
                 <span className="ml-2">จาน</span>
               </div>
               {selectedOrderId && (
-                <p className="text-sm text-gray-600 mt-2">* ระบบจะลดใบตองตึงในคลังวัตถุดิบตามสูตรการผลิตโดยอัตโนมัติ</p>
+                <p className="text-sm text-gray-600 mt-2">* ระบบจะลดวัตถุดิบในคลังตามสูตรการผลิตโดยอัตโนมัติ</p>
               )}
             </div>
 
