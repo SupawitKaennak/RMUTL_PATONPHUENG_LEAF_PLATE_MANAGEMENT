@@ -50,9 +50,17 @@ const parseThaiDate = (dateString: string): Date => {
       if (parts.length === 3) {
         const day = parseInt(parts[0])
         const month = parseInt(parts[1]) - 1 // Month is 0-indexed
-        const year = parseInt(parts[2]) + 2500 // Convert BE to CE (BE = CE + 543, but we only have 2 digits)
+        let year = parseInt(parts[2])
         
-        return new Date(year, month, day)
+        // Handle 2-digit year (BE)
+        if (year < 100) {
+          year = year + 2500 // Convert 2-digit BE to 4-digit BE
+        }
+        
+        // Convert BE to CE
+        const ceYear = year - 543
+        
+        return new Date(ceYear, month, day)
       }
     } else if (dateString.includes('-')) {
       // ISO format: YYYY-MM-DD
@@ -76,6 +84,7 @@ export default function Dashboard() {
   const [materialHistory, setMaterialHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() + 543) // Default to current BE year
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -97,6 +106,14 @@ export default function Dashboard() {
           getMaterials(),
         ])
         const materialHistoryData = await getMaterialHistory()
+        
+        console.log('Loaded data:', {
+          transactions: transactionsData.length,
+          orders: ordersData.length,
+          materials: materialsData.length,
+          materialHistory: materialHistoryData.length
+        })
+        
         setTransactions(transactionsData)
         setOrders(ordersData)
         setMaterials(materialsData)
@@ -110,10 +127,37 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [])
+  }, []) // Only run once on mount
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
+  }
+
+  // Generate year options for selector (5 years back from current year)
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear() + 543 // Current BE year
+    const years = []
+    for (let i = currentYear; i >= currentYear - 4; i--) {
+      years.push(i)
+    }
+    return years
+  }
+
+  // Filter data by selected year
+  const filterDataByYear = (data: any[], dateField: string) => {
+    if (data.length === 0) return []
+    
+    const filtered = data.filter(item => {
+      if (!item[dateField]) {
+        return false
+      }
+      
+      const date = parseThaiDate(item[dateField])
+      const itemYear = date.getFullYear() + 543 // Convert to BE
+      return itemYear === selectedYear
+    })
+    
+    return filtered
   }
 
   // Format time as HH:MM
@@ -133,18 +177,21 @@ export default function Dashboard() {
   const dayOfWeekThai = daysOfWeekThai[currentTime.getDay()]
 
   // Calculate real data from transactions
-  const totalIncome = transactions
+  const filteredTransactions = filterDataByYear(transactions, 'date')
+  const filteredOrders = filterDataByYear(orders, 'date')
+  
+  const totalIncome = filteredTransactions
     .filter(t => t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0)
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
     .filter(t => !t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0)
 
   const netProfit = totalIncome - totalExpenses
 
   // Calculate total production from orders
-  const totalProduction = orders.reduce((sum, order) => {
+  const totalProduction = filteredOrders.reduce((sum, order) => {
     const orderedQty = parseInt(order.orderedQuantity.replace(/[^\d]/g, '')) || 0
     return sum + orderedQty
   }, 0)
@@ -161,7 +208,7 @@ export default function Dashboard() {
   const prepareFinancialData = () => {
     const monthlyData = new Array(12).fill(0).map(() => ({ income: 0, expenses: 0 }))
     
-    transactions.forEach(transaction => {
+    filteredTransactions.forEach(transaction => {
       const date = parseThaiDate(transaction.date)
       const month = date.getMonth()
       if (transaction.isIncome) {
@@ -195,7 +242,7 @@ export default function Dashboard() {
   const prepareProductionData = () => {
     const monthlyData = new Array(12).fill(0)
     
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       const date = parseThaiDate(order.date)
       const month = date.getMonth()
       const qty = parseInt(order.orderedQuantity.replace(/[^\d]/g, '')) || 0
@@ -219,7 +266,7 @@ export default function Dashboard() {
   const prepareProductTypeData = () => {
     const productTypes: { [key: string]: number } = {}
     
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       const product = order.product
       const qty = parseInt(order.orderedQuantity.replace(/[^\d]/g, '')) || 0
       productTypes[product] = (productTypes[product] || 0) + qty
@@ -296,7 +343,7 @@ export default function Dashboard() {
   const prepareElectricityCostData = () => {
     const monthlyData = new Array(12).fill(0)
     
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       const date = parseThaiDate(order.date)
       const month = date.getMonth()
       monthlyData[month] += order.electricityCost || 0
@@ -327,7 +374,7 @@ export default function Dashboard() {
       orderCount: 0 
     }))
     
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       const date = parseThaiDate(order.date)
       const month = date.getMonth()
       monthlyData[month].totalCost += order.totalCost || 0
@@ -446,6 +493,31 @@ export default function Dashboard() {
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">
           <div className="max-w-7xl mx-auto">
+            {/* Year Selector */}
+            <div className="mb-6">
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <h2 className="text-lg font-semibold text-gray-700">เลือกปีที่ต้องการดูข้อมูล:</h2>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {generateYearOptions().map((year) => (
+                        <option key={year} value={year}>
+                          พ.ศ. {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    แสดงข้อมูลปี พ.ศ. {selectedYear}
+                  </div>
+                </div>
+              </Card>
+            </div>
+
             {/* Header Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Time and Date Card */}
@@ -464,7 +536,7 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-sm font-medium text-gray-600">การผลิตรวม</h3>
                     <p className="text-2xl font-bold text-green-600">{totalProduction.toLocaleString()} จาน</p>
-                    <p className="text-xs text-green-500">จาก {orders.length} ออเดอร์</p>
+                    <p className="text-xs text-green-500">จาก {filteredOrders.length} ออเดอร์</p>
                   </div>
                 </div>
               </Card>
@@ -476,7 +548,7 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-sm font-medium text-gray-600">รายรับรวม</h3>
                     <p className="text-2xl font-bold text-blue-600">{totalIncome.toLocaleString()} ฿</p>
-                    <p className="text-xs text-blue-500">จาก {transactions.filter(t => t.isIncome).length} รายการ</p>
+                    <p className="text-xs text-blue-500">จาก {filteredTransactions.filter(t => t.isIncome).length} รายการ</p>
                   </div>
                 </div>
               </Card>
@@ -524,7 +596,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                       <span className="font-medium">จำนวนธุรกรรม</span>
-                      <span className="text-blue-600 font-bold">{transactions.length} รายการ</span>
+                      <span className="text-blue-600 font-bold">{filteredTransactions.length} รายการ</span>
                     </div>
                   </div>
                 </Card>
@@ -559,7 +631,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                       <span className="font-medium">จำนวนออเดอร์</span>
-                      <span className="text-blue-600 font-bold">{orders.length} ออเดอร์</span>
+                      <span className="text-blue-600 font-bold">{filteredOrders.length} ออเดอร์</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
                       <span className="font-medium">สต็อกคงเหลือ</span>
@@ -567,7 +639,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
                       <span className="font-medium">ประเภทผลิตภัณฑ์</span>
-                      <span className="text-purple-600 font-bold">{new Set(orders.map(o => o.product)).size} ประเภท</span>
+                      <span className="text-purple-600 font-bold">{new Set(filteredOrders.map(o => o.product)).size} ประเภท</span>
                     </div>
                   </div>
                 </Card>
@@ -635,19 +707,19 @@ export default function Dashboard() {
                     <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
                       <span className="font-medium">ค่าไฟรวม</span>
                       <span className="text-orange-600 font-bold">
-                        {orders.reduce((sum, order) => sum + (order.electricityCost || 0), 0).toLocaleString()} ฿
+                        {filteredOrders.reduce((sum, order) => sum + (order.electricityCost || 0), 0).toLocaleString()} ฿
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                       <span className="font-medium">ต้นทุนรวม</span>
                       <span className="text-blue-600 font-bold">
-                        {orders.reduce((sum, order) => sum + (order.totalCost || 0), 0).toLocaleString()} ฿
+                        {filteredOrders.reduce((sum, order) => sum + (order.totalCost || 0), 0).toLocaleString()} ฿
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                       <span className="font-medium">ราคาขายรวม</span>
                       <span className="text-green-600 font-bold">
-                        {orders.reduce((sum, order) => sum + (order.sellingPrice || 0), 0).toLocaleString()} ฿
+                        {filteredOrders.reduce((sum, order) => sum + (order.sellingPrice || 0), 0).toLocaleString()} ฿
                       </span>
                     </div>
                   </div>
@@ -657,7 +729,7 @@ export default function Dashboard() {
                   <h3 className="text-lg font-semibold mb-3">อัตรากำไรเฉลี่ย</h3>
                   <div className="space-y-4">
                     {(() => {
-                      const ordersWithCost = orders.filter(order => order.totalCost > 0 && order.sellingPrice > 0)
+                      const ordersWithCost = filteredOrders.filter(order => order.totalCost > 0 && order.sellingPrice > 0)
                       const totalProfit = ordersWithCost.reduce((sum, order) => {
                         return sum + (order.sellingPrice - order.totalCost)
                       }, 0)
