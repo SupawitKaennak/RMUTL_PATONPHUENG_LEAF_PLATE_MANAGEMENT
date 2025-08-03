@@ -320,25 +320,34 @@ export default function Dashboard() {
   }
 
   const prepareCostVsPriceData = () => {
-    const orderData = orders.slice(0, 10).map(order => ({
-      lot: order.lot,
-      totalCost: order.totalCost || 0,
-      sellingPrice: order.sellingPrice || 0,
+    // Group data by month instead of individual lots
+    const monthlyData = new Array(12).fill(0).map(() => ({ 
+      totalCost: 0, 
+      sellingPrice: 0, 
+      orderCount: 0 
     }))
+    
+    orders.forEach(order => {
+      const date = parseThaiDate(order.date)
+      const month = date.getMonth()
+      monthlyData[month].totalCost += order.totalCost || 0
+      monthlyData[month].sellingPrice += order.sellingPrice || 0
+      monthlyData[month].orderCount += 1
+    })
 
     return {
-      labels: orderData.map(order => order.lot),
+      labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
       datasets: [
         {
           label: "ต้นทุนรวม (บาท)",
-          data: orderData.map(order => order.totalCost),
+          data: monthlyData.map(d => d.totalCost),
           backgroundColor: "#ef4444",
           borderColor: "#dc2626",
           borderWidth: 1,
         },
         {
-          label: "ราคาขาย (บาท)",
-          data: orderData.map(order => order.sellingPrice),
+          label: "ราคาขายรวม (บาท)",
+          data: monthlyData.map(d => d.sellingPrice),
           backgroundColor: "#10b981",
           borderColor: "#059669",
           borderWidth: 1,
@@ -613,7 +622,7 @@ export default function Dashboard() {
                   </div>
                 </Card>
                 <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">ต้นทุนรวม vs ราคาขาย (10 ออเดอร์ล่าสุด)</h3>
+                  <h3 className="text-lg font-semibold mb-3">ต้นทุนรวม vs ราคาขายรายเดือน</h3>
                   <div className="h-64">
                     <Bar options={barOptions} data={prepareCostVsPriceData()} />
                   </div>
