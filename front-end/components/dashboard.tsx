@@ -5,6 +5,12 @@ import { Menu, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, PieChar
 import Sidebar from "./sidebar"
 import { Card } from "@/components/ui/card"
 import type { Transaction } from "@/types/transaction"
+import type { Order } from "@/types/order"
+import type { Material } from "@/types/material"
+import { getTransactions } from "@/services/transaction-service"
+import { getOrders } from "@/services/order-service"
+import { getMaterials } from "@/services/material-service"
+import { getMaterialHistory } from "@/services/material-history-service"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,242 +40,42 @@ ChartJS.register(
   Filler,
 )
 
-// Sample data for production analytics
-const productionData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "จำนวนจานที่ผลิต",
-      data: [1200, 1350, 1100, 1400, 1600, 1800, 1700, 1900, 2100, 2000, 2200, 2400],
-      backgroundColor: "#3b82f6",
-      borderColor: "#2563eb",
-      borderWidth: 1,
-    },
-  ],
-}
-
-// Product type distribution
-const productTypeData = {
-  labels: ["จานสี่เหลี่ยม", "จานวงกลม", "จานหัวใจ"],
-  datasets: [
-    {
-      data: [45, 35, 20],
-      backgroundColor: ["#ef4444", "#3b82f6", "#10b981"],
-      borderWidth: 2,
-      borderColor: "#ffffff",
-    },
-  ],
-}
-
-// Production status trend
-const productionStatusData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "กำลังเตรียมการ",
-      data: [15, 20, 18, 25, 30, 28, 35, 40, 38, 45, 42, 50],
-      borderColor: "#f59e0b",
-      backgroundColor: "rgba(245, 158, 11, 0.1)",
-      tension: 0.4,
-      fill: true,
-    },
-    {
-      label: "กำลังผลิต",
-      data: [25, 30, 28, 35, 40, 45, 50, 55, 60, 65, 70, 75],
-      borderColor: "#3b82f6",
-      backgroundColor: "rgba(59, 130, 246, 0.1)",
-      tension: 0.4,
-      fill: true,
-    },
-    {
-      label: "ผลิตเสร็จสิ้น",
-      data: [60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115],
-      borderColor: "#10b981",
-      backgroundColor: "rgba(16, 185, 129, 0.1)",
-      tension: 0.4,
-      fill: true,
-    },
-  ],
-}
-
-// Financial analytics - Revenue vs Expenses
-const financialData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "รายรับ",
-      data: [15000, 18000, 16000, 20000, 24000, 28000, 26000, 30000, 34000, 32000, 36000, 40000],
-      backgroundColor: "#10b981",
-      borderColor: "#059669",
-      borderWidth: 1,
-    },
-    {
-      label: "รายจ่าย",
-      data: [12000, 14000, 13000, 16000, 18000, 20000, 19000, 22000, 24000, 23000, 26000, 28000],
-      backgroundColor: "#ef4444",
-      borderColor: "#dc2626",
-      borderWidth: 1,
-    },
-  ],
-}
-
-// Net profit trend
-const netProfitData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "กำไรสุทธิ",
-      data: [3000, 4000, 3000, 4000, 6000, 8000, 7000, 8000, 10000, 9000, 10000, 12000],
-      borderColor: "#10b981",
-      backgroundColor: "rgba(16, 185, 129, 0.1)",
-      tension: 0.4,
-      fill: true,
-      pointRadius: 4,
-      pointBackgroundColor: "#10b981",
-    },
-  ],
-}
-
-// Cost structure
-const costStructureData = {
-  labels: ["วัตถุดิบ", "ค่าไฟ", "ค่าแรง", "อื่นๆ"],
-  datasets: [
-    {
-      data: [40, 25, 20, 15],
-      backgroundColor: ["#3b82f6", "#f59e0b", "#10b981", "#8b5cf6"],
-      borderWidth: 2,
-      borderColor: "#ffffff",
-    },
-  ],
-}
-
-// Selling price vs cost per plate
-const priceVsCostData = {
-  labels: ["จานสี่เหลี่ยม", "จานวงกลม", "จานหัวใจ"],
-  datasets: [
-    {
-      label: "ราคาขาย",
-      data: [500, 500, 500],
-      backgroundColor: "#10b981",
-      borderColor: "#059669",
-      borderWidth: 1,
-    },
-    {
-      label: "ต้นทุนต่อจาน",
-      data: [320, 350, 380],
-      backgroundColor: "#ef4444",
-      borderColor: "#dc2626",
-      borderWidth: 1,
-    },
-  ],
-}
-
-// Inventory analytics - Leaf usage
-const leafUsageData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "การใช้ใบตองตึง (ใบ)",
-      data: [4800, 5400, 4400, 5600, 6400, 7200, 6800, 7600, 8400, 8000, 8800, 9600],
-      backgroundColor: "#059669",
-      borderColor: "#047857",
-      borderWidth: 1,
-    },
-  ],
-}
-
-// Stock level trend
-const stockLevelData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "ระดับสต็อกใบตองตึง",
-      data: [10000, 9500, 9000, 8500, 8000, 7500, 7000, 6500, 6000, 5500, 5000, 4500],
-      borderColor: "#f59e0b",
-      backgroundColor: "rgba(245, 158, 11, 0.1)",
-      tension: 0.4,
-      fill: true,
-      pointRadius: 3,
-      pointBackgroundColor: "#f59e0b",
-    },
-  ],
-}
-
-// Material usage distribution
-const materialUsageData = {
-  labels: ["ใช้ในการผลิต", "คืนจากออเดอร์", "เพิ่มใหม่"],
-  datasets: [
-    {
-      data: [70, 20, 10],
-      backgroundColor: ["#3b82f6", "#10b981", "#f59e0b"],
-      borderWidth: 2,
-      borderColor: "#ffffff",
-    },
-  ],
-}
-
-// Performance analytics - Production efficiency
-const efficiencyData = {
-  labels: ["สัปดาห์ 1", "สัปดาห์ 2", "สัปดาห์ 3", "สัปดาห์ 4"],
-  datasets: [
-    {
-      label: "จำนวนจานต่อสัปดาห์",
-      data: [400, 450, 500, 550],
-      backgroundColor: "#8b5cf6",
-      borderColor: "#7c3aed",
-      borderWidth: 1,
-    },
-  ],
-}
-
-// Machine utilization
-const machineUtilizationData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "อัตราการใช้เครื่องจักร (%)",
-      data: [75, 80, 78, 85, 90, 88, 92, 95, 93, 96, 98, 100],
-      borderColor: "#8b5cf6",
-      backgroundColor: "rgba(139, 92, 246, 0.1)",
-      tension: 0.4,
-      fill: true,
-      pointRadius: 3,
-      pointBackgroundColor: "#8b5cf6",
-    },
-  ],
-}
-
-// Cost per unit
-const costPerUnitData = {
-  labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
-  datasets: [
-    {
-      label: "ต้นทุนการผลิต (บาท)",
-      data: [350, 340, 330, 320, 310, 300, 290, 285, 280, 275, 270, 265],
-      backgroundColor: "#ef4444",
-      borderColor: "#dc2626",
-      borderWidth: 1,
-    },
-  ],
-}
-
-// Best selling products
-const bestSellingData = {
-  labels: ["จานสี่เหลี่ยม", "จานวงกลม", "จานหัวใจ"],
-  datasets: [
-    {
-      label: "จำนวนที่ขายได้",
-      data: [1200, 900, 600],
-      backgroundColor: ["#ef4444", "#3b82f6", "#10b981"],
-      borderColor: ["#dc2626", "#2563eb", "#059669"],
-      borderWidth: 1,
-    },
-  ],
+// Utility function to parse Thai date format (DD/MM/YY)
+const parseThaiDate = (dateString: string): Date => {
+  try {
+    // Handle different date formats
+    if (dateString.includes('/')) {
+      // Thai format: DD/MM/YY
+      const parts = dateString.split('/')
+      if (parts.length === 3) {
+        const day = parseInt(parts[0])
+        const month = parseInt(parts[1]) - 1 // Month is 0-indexed
+        const year = parseInt(parts[2]) + 2500 // Convert BE to CE (BE = CE + 543, but we only have 2 digits)
+        
+        return new Date(year, month, day)
+      }
+    } else if (dateString.includes('-')) {
+      // ISO format: YYYY-MM-DD
+      return new Date(dateString)
+    }
+    
+    // Fallback to standard Date parsing
+    return new Date(dateString)
+  } catch (error) {
+    console.error('Error parsing date:', dateString, error)
+    return new Date() // Return current date as fallback
+  }
 }
 
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [materialHistory, setMaterialHistory] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -279,6 +85,31 @@ export default function Dashboard() {
     return () => {
       clearInterval(timer)
     }
+  }, [])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const [transactionsData, ordersData, materialsData] = await Promise.all([
+          getTransactions(),
+          getOrders(),
+          getMaterials(),
+        ])
+        const materialHistoryData = await getMaterialHistory()
+        setTransactions(transactionsData)
+        setOrders(ordersData)
+        setMaterials(materialsData)
+        setMaterialHistory(materialHistoryData)
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err)
+        setError("เกิดข้อผิดพลาดในการโหลดข้อมูล")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
 
   const toggleSidebar = () => {
@@ -300,6 +131,221 @@ export default function Dashboard() {
   // Get day of week in Thai
   const daysOfWeekThai = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"]
   const dayOfWeekThai = daysOfWeekThai[currentTime.getDay()]
+
+  // Calculate real data from transactions
+  const totalIncome = transactions
+    .filter(t => t.isIncome)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const totalExpenses = transactions
+    .filter(t => !t.isIncome)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const netProfit = totalIncome - totalExpenses
+
+  // Calculate total production from orders
+  const totalProduction = orders.reduce((sum, order) => {
+    const orderedQty = parseInt(order.orderedQuantity.replace(/[^\d]/g, '')) || 0
+    return sum + orderedQty
+  }, 0)
+
+  // Calculate current stock from materials
+  const currentStock = materials.reduce((sum, material) => {
+    if (material.name.toLowerCase().includes('ใบตองตึง')) {
+      return sum + material.quantity
+    }
+    return sum
+  }, 0)
+
+  // Prepare chart data from real data
+  const prepareFinancialData = () => {
+    const monthlyData = new Array(12).fill(0).map(() => ({ income: 0, expenses: 0 }))
+    
+    transactions.forEach(transaction => {
+      const date = parseThaiDate(transaction.date)
+      const month = date.getMonth()
+      if (transaction.isIncome) {
+        monthlyData[month].income += transaction.amount
+      } else {
+        monthlyData[month].expenses += transaction.amount
+      }
+    })
+
+    return {
+      labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
+      datasets: [
+        {
+          label: "รายรับ",
+          data: monthlyData.map(d => d.income),
+          backgroundColor: "#10b981",
+          borderColor: "#059669",
+          borderWidth: 1,
+        },
+        {
+          label: "รายจ่าย",
+          data: monthlyData.map(d => d.expenses),
+          backgroundColor: "#ef4444",
+          borderColor: "#dc2626",
+          borderWidth: 1,
+        },
+      ],
+    }
+  }
+
+  const prepareProductionData = () => {
+    const monthlyData = new Array(12).fill(0)
+    
+    orders.forEach(order => {
+      const date = parseThaiDate(order.date)
+      const month = date.getMonth()
+      const qty = parseInt(order.orderedQuantity.replace(/[^\d]/g, '')) || 0
+      monthlyData[month] += qty
+    })
+
+    return {
+      labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
+      datasets: [
+        {
+          label: "จำนวนจานที่ผลิต",
+          data: monthlyData,
+          backgroundColor: "#3b82f6",
+          borderColor: "#2563eb",
+          borderWidth: 1,
+        },
+      ],
+    }
+  }
+
+  const prepareProductTypeData = () => {
+    const productTypes: { [key: string]: number } = {}
+    
+    orders.forEach(order => {
+      const product = order.product
+      const qty = parseInt(order.orderedQuantity.replace(/[^\d]/g, '')) || 0
+      productTypes[product] = (productTypes[product] || 0) + qty
+    })
+
+    const labels = Object.keys(productTypes)
+    const data = Object.values(productTypes)
+    const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"]
+
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: "#ffffff",
+        },
+      ],
+    }
+  }
+
+  const prepareMaterialUsageData = () => {
+    const usageTypes = {
+      "ใช้ในการผลิต": 0,
+      "เพิ่มใหม่": 0,
+      "คืนจากออเดอร์": 0,
+    }
+
+    // Calculate real usage from material history
+    materialHistory.forEach(history => {
+      if (history.name.toLowerCase().includes('ใบตองตึง')) {
+        switch (history.action) {
+          case "นำไปใช้":
+            usageTypes["ใช้ในการผลิต"] += history.quantity
+            break
+          case "เพิ่ม":
+            usageTypes["เพิ่มใหม่"] += history.quantity
+            break
+          case "คืนวัตถุดิบ":
+            usageTypes["คืนจากออเดอร์"] += history.quantity
+            break
+        }
+      }
+    })
+
+    // If no history data, fallback to current stock
+    if (usageTypes["เพิ่มใหม่"] === 0) {
+      materials.forEach(material => {
+        if (material.name.toLowerCase().includes('ใบตองตึง')) {
+          usageTypes["เพิ่มใหม่"] += material.quantity
+        }
+      })
+    }
+
+    // If still no usage data, estimate from production
+    if (usageTypes["ใช้ในการผลิต"] === 0) {
+      usageTypes["ใช้ในการผลิต"] = totalProduction * 4 // Assume 4 leaves per plate
+    }
+
+    return {
+      labels: Object.keys(usageTypes),
+      datasets: [
+        {
+          data: Object.values(usageTypes),
+          backgroundColor: ["#3b82f6", "#10b981", "#f59e0b"],
+          borderWidth: 2,
+          borderColor: "#ffffff",
+        },
+      ],
+    }
+  }
+
+  const prepareElectricityCostData = () => {
+    const monthlyData = new Array(12).fill(0)
+    
+    orders.forEach(order => {
+      const date = parseThaiDate(order.date)
+      const month = date.getMonth()
+      monthlyData[month] += order.electricityCost || 0
+    })
+
+    return {
+      labels: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
+      datasets: [
+        {
+          label: "ค่าไฟการผลิต (บาท)",
+          data: monthlyData,
+          borderColor: "#f59e0b",
+          backgroundColor: "rgba(245, 158, 11, 0.1)",
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: "#f59e0b",
+        },
+      ],
+    }
+  }
+
+  const prepareCostVsPriceData = () => {
+    const orderData = orders.slice(0, 10).map(order => ({
+      lot: order.lot,
+      totalCost: order.totalCost || 0,
+      sellingPrice: order.sellingPrice || 0,
+    }))
+
+    return {
+      labels: orderData.map(order => order.lot),
+      datasets: [
+        {
+          label: "ต้นทุนรวม (บาท)",
+          data: orderData.map(order => order.totalCost),
+          backgroundColor: "#ef4444",
+          borderColor: "#dc2626",
+          borderWidth: 1,
+        },
+        {
+          label: "ราคาขาย (บาท)",
+          data: orderData.map(order => order.sellingPrice),
+          backgroundColor: "#10b981",
+          borderColor: "#059669",
+          borderWidth: 1,
+        },
+      ],
+    }
+  }
 
   // Chart options
   const barOptions = {
@@ -342,6 +388,39 @@ export default function Dashboard() {
     },
   }
 
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar isOpen={isSidebarOpen} activePage="Dashboard" onClose={() => setIsSidebarOpen(false)} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar isOpen={isSidebarOpen} activePage="Dashboard" onClose={() => setIsSidebarOpen(false)} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              ลองใหม่
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} activePage="Dashboard" onClose={() => setIsSidebarOpen(false)} />
@@ -375,8 +454,8 @@ export default function Dashboard() {
                   <Package className="h-8 w-8 text-green-500 mr-3" />
                   <div>
                     <h3 className="text-sm font-medium text-gray-600">การผลิตรวม</h3>
-                    <p className="text-2xl font-bold text-green-600">24,000 จาน</p>
-                    <p className="text-xs text-green-500">+15% จากเดือนที่แล้ว</p>
+                    <p className="text-2xl font-bold text-green-600">{totalProduction.toLocaleString()} จาน</p>
+                    <p className="text-xs text-green-500">จาก {orders.length} ออเดอร์</p>
                   </div>
                 </div>
               </Card>
@@ -387,8 +466,8 @@ export default function Dashboard() {
                   <DollarSign className="h-8 w-8 text-blue-500 mr-3" />
                   <div>
                     <h3 className="text-sm font-medium text-gray-600">รายรับรวม</h3>
-                    <p className="text-2xl font-bold text-blue-600">400,000 ฿</p>
-                    <p className="text-xs text-blue-500">+12% จากเดือนที่แล้ว</p>
+                    <p className="text-2xl font-bold text-blue-600">{totalIncome.toLocaleString()} ฿</p>
+                    <p className="text-xs text-blue-500">จาก {transactions.filter(t => t.isIncome).length} รายการ</p>
                   </div>
                 </div>
               </Card>
@@ -399,39 +478,11 @@ export default function Dashboard() {
                   <TrendingUp className="h-8 w-8 text-purple-500 mr-3" />
                   <div>
                     <h3 className="text-sm font-medium text-gray-600">กำไรสุทธิ</h3>
-                    <p className="text-2xl font-bold text-purple-600">120,000 ฿</p>
-                    <p className="text-xs text-purple-500">+18% จากเดือนที่แล้ว</p>
+                    <p className="text-2xl font-bold text-purple-600">{netProfit.toLocaleString()} ฿</p>
+                    <p className="text-xs text-purple-500">รายจ่าย {totalExpenses.toLocaleString()} ฿</p>
                   </div>
                 </div>
               </Card>
-            </div>
-
-            {/* Production Analytics Section */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2" />
-                การวิเคราะห์การผลิต (Production Analytics)
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">จำนวนการผลิตรายเดือน</h3>
-                  <div className="h-64">
-                    <Bar options={barOptions} data={productionData} />
-                  </div>
-                </Card>
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">สัดส่วนประเภทผลิตภัณฑ์</h3>
-                  <div className="h-64">
-                    <Pie options={pieOptions} data={productTypeData} />
-                  </div>
-                </Card>
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">สถานะการผลิต</h3>
-                  <div className="h-64">
-                    <Line options={lineOptions} data={productionStatusData} />
-                  </div>
-                </Card>
-              </div>
             </div>
 
             {/* Financial Analytics Section */}
@@ -444,27 +495,71 @@ export default function Dashboard() {
                 <Card className="p-4">
                   <h3 className="text-lg font-semibold mb-3">รายรับ-รายจ่ายรายเดือน</h3>
                   <div className="h-64">
-                    <Bar options={barOptions} data={financialData} />
+                    <Bar options={barOptions} data={prepareFinancialData()} />
                   </div>
                 </Card>
                 <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">กำไรสุทธิรายเดือน</h3>
-                  <div className="h-64">
-                    <Line options={lineOptions} data={netProfitData} />
+                  <h3 className="text-lg font-semibold mb-3">สรุปการเงิน</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                      <span className="font-medium">รายรับรวม</span>
+                      <span className="text-green-600 font-bold">{totalIncome.toLocaleString()} ฿</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                      <span className="font-medium">รายจ่ายรวม</span>
+                      <span className="text-red-600 font-bold">{totalExpenses.toLocaleString()} ฿</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                      <span className="font-medium">กำไรสุทธิ</span>
+                      <span className="text-purple-600 font-bold">{netProfit.toLocaleString()} ฿</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="font-medium">จำนวนธุรกรรม</span>
+                      <span className="text-blue-600 font-bold">{transactions.length} รายการ</span>
+                    </div>
                   </div>
                 </Card>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            </div>
+
+            {/* Production Analytics Section */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2" />
+                การวิเคราะห์การผลิต (Production Analytics)
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">สัดส่วนต้นทุน</h3>
+                  <h3 className="text-lg font-semibold mb-3">จำนวนการผลิตรายเดือน</h3>
                   <div className="h-64">
-                    <Pie options={pieOptions} data={costStructureData} />
+                    <Bar options={barOptions} data={prepareProductionData()} />
                   </div>
                 </Card>
                 <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">ราคาขาย vs ต้นทุนต่อจาน</h3>
+                  <h3 className="text-lg font-semibold mb-3">สัดส่วนประเภทผลิตภัณฑ์</h3>
                   <div className="h-64">
-                    <Bar options={barOptions} data={priceVsCostData} />
+                    <Pie options={pieOptions} data={prepareProductTypeData()} />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="text-lg font-semibold mb-3">สรุปการผลิต</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                      <span className="font-medium">การผลิตรวม</span>
+                      <span className="text-green-600 font-bold">{totalProduction.toLocaleString()} จาน</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="font-medium">จำนวนออเดอร์</span>
+                      <span className="text-blue-600 font-bold">{orders.length} ออเดอร์</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                      <span className="font-medium">สต็อกคงเหลือ</span>
+                      <span className="text-orange-600 font-bold">{currentStock.toLocaleString()} ใบ</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                      <span className="font-medium">ประเภทผลิตภัณฑ์</span>
+                      <span className="text-purple-600 font-bold">{new Set(orders.map(o => o.product)).size} ประเภท</span>
+                    </div>
                   </div>
                 </Card>
               </div>
@@ -476,88 +571,108 @@ export default function Dashboard() {
                 <Package className="h-5 w-5 mr-2" />
                 การวิเคราะห์คลังวัตถุดิบ (Inventory Analytics)
               </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">การใช้ใบตองตึงรายเดือน</h3>
-                  <div className="h-64">
-                    <Bar options={barOptions} data={leafUsageData} />
-                  </div>
-                </Card>
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">ระดับสต็อกใบตองตึง</h3>
-                  <div className="h-64">
-                    <Line options={lineOptions} data={stockLevelData} />
-                  </div>
-                </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card className="p-4">
                   <h3 className="text-lg font-semibold mb-3">สัดส่วนการใช้งานวัตถุดิบ</h3>
                   <div className="h-64">
-                    <Pie options={pieOptions} data={materialUsageData} />
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Performance Analytics Section */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2" />
-                การวิเคราะห์ประสิทธิภาพ (Performance Analytics)
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">ประสิทธิภาพการผลิต</h3>
-                  <div className="h-64">
-                    <Bar options={barOptions} data={efficiencyData} />
+                    <Pie options={pieOptions} data={prepareMaterialUsageData()} />
                   </div>
                 </Card>
                 <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">อัตราการใช้เครื่องจักร</h3>
-                  <div className="h-64">
-                    <Line options={lineOptions} data={machineUtilizationData} />
-                  </div>
-                </Card>
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">ต้นทุนการผลิต</h3>
-                  <div className="h-64">
-                    <Bar options={barOptions} data={costPerUnitData} />
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Summary Analytics Section */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center">
-                <PieChart className="h-5 w-5 mr-2" />
-                การวิเคราะห์สรุป (Summary Analytics)
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">ผลิตภัณฑ์ที่ขายดี</h3>
-                  <div className="h-64">
-                    <Bar options={barOptions} data={bestSellingData} />
-                  </div>
-                </Card>               
-                <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-3">สรุปภาพรวม</h3>
+                  <h3 className="text-lg font-semibold mb-3">ข้อมูลวัตถุดิบ</h3>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span className="font-medium">การผลิตรวม</span>
-                      <span className="text-green-600 font-bold">24,000 จาน</span>
+                    {materials.map((material) => (
+                      <div key={material.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">{material.name}</span>
+                        <span className="text-gray-600 font-bold">
+                          {material.quantity.toLocaleString()} {material.unit}
+                        </span>
+                      </div>
+                    ))}
+                    {materials.length === 0 && (
+                      <div className="text-center text-gray-500 py-8">
+                        ไม่มีข้อมูลวัตถุดิบ
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Cost Analysis Section */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center">
+                <TrendingDown className="h-5 w-5 mr-2" />
+                การวิเคราะห์ต้นทุน (Cost Analysis)
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="p-4">
+                  <h3 className="text-lg font-semibold mb-3">ค่าไฟการผลิตรายเดือน</h3>
+                  <div className="h-64">
+                    <Line options={lineOptions} data={prepareElectricityCostData()} />
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="text-lg font-semibold mb-3">ต้นทุนรวม vs ราคาขาย (10 ออเดอร์ล่าสุด)</h3>
+                  <div className="h-64">
+                    <Bar options={barOptions} data={prepareCostVsPriceData()} />
+                  </div>
+                </Card>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+                <Card className="p-4">
+                  <h3 className="text-lg font-semibold mb-3">สรุปต้นทุน</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                      <span className="font-medium">ค่าไฟรวม</span>
+                      <span className="text-orange-600 font-bold">
+                        {orders.reduce((sum, order) => sum + (order.electricityCost || 0), 0).toLocaleString()} ฿
+                      </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                      <span className="font-medium">รายรับรวม</span>
-                      <span className="text-blue-600 font-bold">400,000 ฿</span>
+                      <span className="font-medium">ต้นทุนรวม</span>
+                      <span className="text-blue-600 font-bold">
+                        {orders.reduce((sum, order) => sum + (order.totalCost || 0), 0).toLocaleString()} ฿
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                      <span className="font-medium">กำไรสุทธิ</span>
-                      <span className="text-purple-600 font-bold">120,000 ฿</span>
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                      <span className="font-medium">ราคาขายรวม</span>
+                      <span className="text-green-600 font-bold">
+                        {orders.reduce((sum, order) => sum + (order.sellingPrice || 0), 0).toLocaleString()} ฿
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                      <span className="font-medium">สต็อกคงเหลือ</span>
-                      <span className="text-orange-600 font-bold">4,500 ใบ</span>
-                    </div>
+                  </div>
+                </Card>
+              
+                <Card className="p-4">
+                  <h3 className="text-lg font-semibold mb-3">อัตรากำไรเฉลี่ย</h3>
+                  <div className="space-y-4">
+                    {(() => {
+                      const ordersWithCost = orders.filter(order => order.totalCost > 0 && order.sellingPrice > 0)
+                      const totalProfit = ordersWithCost.reduce((sum, order) => {
+                        return sum + (order.sellingPrice - order.totalCost)
+                      }, 0)
+                      const avgProfitRate = ordersWithCost.length > 0 
+                        ? (totalProfit / ordersWithCost.reduce((sum, order) => sum + order.totalCost, 0)) * 100 
+                        : 0
+                      
+                      return (
+                        <>
+                          <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                            <span className="font-medium">กำไรรวม</span>
+                            <span className="text-purple-600 font-bold">{totalProfit.toLocaleString()} ฿</span>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
+                            <span className="font-medium">อัตรากำไรเฉลี่ย</span>
+                            <span className="text-indigo-600 font-bold">{avgProfitRate.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <span className="font-medium">จำนวนออเดอร์</span>
+                            <span className="text-gray-600 font-bold">{ordersWithCost.length} ออเดอร์</span>
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </Card>
               </div>
