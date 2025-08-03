@@ -733,8 +733,9 @@ export default function Dashboard() {
                       const totalProfit = ordersWithCost.reduce((sum, order) => {
                         return sum + (order.sellingPrice - order.totalCost)
                       }, 0)
-                      const avgProfitRate = ordersWithCost.length > 0 
-                        ? (totalProfit / ordersWithCost.reduce((sum, order) => sum + order.totalCost, 0)) * 100 
+                      const totalRevenue = ordersWithCost.reduce((sum, order) => sum + order.sellingPrice, 0)
+                      const avgProfitRate = totalRevenue > 0 
+                        ? (totalProfit / totalRevenue) * 100 
                         : 0
                       
                       return (

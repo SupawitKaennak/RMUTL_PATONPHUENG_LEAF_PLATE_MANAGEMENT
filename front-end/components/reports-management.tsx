@@ -444,7 +444,14 @@ export default function ReportsManagement() {
                       <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
                         <span className="font-medium">อัตรากำไรเฉลี่ย</span>
                         <span className="text-purple-600 font-bold">
-                          {totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : 0}%
+                          {(() => {
+                            const ordersWithCost = filteredOrders.filter(order => order.totalCost > 0 && order.sellingPrice > 0)
+                            const totalProfit = ordersWithCost.reduce((sum, order) => {
+                              return sum + (order.sellingPrice - order.totalCost)
+                            }, 0)
+                            const totalRevenue = ordersWithCost.reduce((sum, order) => sum + order.sellingPrice, 0)
+                            return totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0.0'
+                          })()}%
                         </span>
                       </div>
                     </div>
