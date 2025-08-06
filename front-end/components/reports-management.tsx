@@ -12,6 +12,7 @@ import { getMaterialHistory } from "@/services/material-history-service"
 import type { Transaction } from "@/types/transaction"
 import type { Order } from "@/types/order"
 import type { Material } from "@/types/material"
+import * as XLSX from 'xlsx'
 
 // Utility function to parse Thai date format (DD/MM/YY)
 const parseThaiDate = (dateString: string): Date => {
@@ -214,6 +215,156 @@ export default function ReportsManagement() {
     document.body.removeChild(link)
   }
 
+  const handleExportToExcelFile = () => {
+    try {
+      // Generate report data
+      const reportData = {
+        year: selectedYear,
+        summary: {
+          totalIncome,
+          totalExpenses,
+          netProfit,
+          totalProduction,
+          totalOrders: filteredOrders.length,
+          totalTransactions: filteredTransactions.length,
+          currentStock,
+          totalElectricityCost,
+          totalCost,
+          totalSellingPrice
+        },
+        monthlyData,
+        orders: filteredOrders,
+        transactions: filteredTransactions,
+        materials
+      }
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new()
+      
+      // Create comprehensive data array similar to CSV format
+      const excelData = []
+      
+      // Header information
+      excelData.push(['รายงานปี พ.ศ.', selectedYear.toString()])
+      excelData.push(['รายงานปี ค.ศ.', (selectedYear - 543).toString()])
+      excelData.push([]) // Empty row
+      
+      // Summary section
+      excelData.push(['สรุปข้อมูล'])
+      excelData.push(['รายรับรวม', reportData.summary.totalIncome.toString()])
+      excelData.push(['รายจ่ายรวม', reportData.summary.totalExpenses.toString()])
+      excelData.push(['กำไรสุทธิ', reportData.summary.netProfit.toString()])
+      excelData.push(['การผลิตรวม', reportData.summary.totalProduction.toString()])
+      excelData.push(['จำนวนออเดอร์', reportData.summary.totalOrders.toString()])
+      excelData.push(['จำนวนธุรกรรม', reportData.summary.totalTransactions.toString()])
+      excelData.push(['สต็อกคงเหลือ', reportData.summary.currentStock.toString()])
+      excelData.push(['ค่าไฟรวม', reportData.summary.totalElectricityCost.toString()])
+      excelData.push(['ต้นทุนรวม', reportData.summary.totalCost.toString()])
+      excelData.push(['ราคาขายรวม', reportData.summary.totalSellingPrice.toString()])
+      excelData.push([]) // Empty row
+      
+      // Monthly data section
+      excelData.push(['ข้อมูลรายเดือน'])
+      excelData.push(['เดือน', 'รายรับ', 'รายจ่าย', 'กำไร', 'การผลิต', 'จำนวนออเดอร์'])
+      const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+      months.forEach((month, index) => {
+        const income = monthlyData[index].income
+        const expenses = monthlyData[index].expenses
+        const profit = income - expenses
+        excelData.push([
+          month,
+          income.toString(),
+          expenses.toString(),
+          profit.toString(),
+          monthlyData[index].production.toString(),
+          monthlyData[index].orders.toString()
+        ])
+      })
+      excelData.push([]) // Empty row
+      
+      // Orders data section
+      excelData.push(['ข้อมูลออเดอร์'])
+      excelData.push(['LOT', 'วันที่', 'ผลิตภัณฑ์', 'จำนวน', 'สถานะ', 'ต้นทุน', 'ราคาขาย'])
+      filteredOrders.forEach((order: any) => {
+        const parsedDate = parseThaiDate(order.date)
+        const formattedDate = `${parsedDate.getDate()}/${parsedDate.getMonth() + 1}/${parsedDate.getFullYear()}`
+        excelData.push([
+          order.lot,
+          formattedDate,
+          order.product,
+          order.orderedQuantity,
+          order.status,
+          (order.totalCost || 0).toString(),
+          (order.sellingPrice || 0).toString()
+        ])
+      })
+      excelData.push([]) // Empty row
+      
+      // Materials data section
+      excelData.push(['ข้อมูลวัตถุดิบ'])
+      excelData.push(['ชื่อ', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย', 'มูลค่ารวม'])
+      materials.forEach((material: any) => {
+        excelData.push([
+          material.name,
+          material.quantity.toString(),
+          material.unit,
+          material.pricePerUnit.toString(),
+          (material.quantity * material.pricePerUnit).toString()
+        ])
+      })
+      excelData.push([]) // Empty row
+      
+      // Transactions data section
+      excelData.push(['ข้อมูลธุรกรรม'])
+      excelData.push(['วันที่', 'รายการ', 'จำนวนเงิน', 'ประเภท', 'หมายเหตุ'])
+      filteredTransactions.forEach((transaction: any) => {
+        excelData.push([
+          transaction.date,
+          transaction.description,
+          transaction.amount.toString(),
+          transaction.isIncome ? 'รายรับ' : 'รายจ่าย',
+          transaction.notes || ''
+        ])
+      })
+      
+      // Create worksheet from the comprehensive data
+      const worksheet = XLSX.utils.aoa_to_sheet(excelData)
+      
+      // Set column widths for better readability
+      const columnWidths = [
+        { wch: 15 }, // Column A
+        { wch: 20 }, // Column B
+        { wch: 20 }, // Column C
+        { wch: 15 }, // Column D
+        { wch: 15 }, // Column E
+        { wch: 15 }, // Column F
+        { wch: 15 }  // Column G
+      ]
+      worksheet['!cols'] = columnWidths
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงาน')
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      
+      // Download file
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `รายงาน_ปี_${selectedYear}.xlsx`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting to Excel:', error)
+      alert('เกิดข้อผิดพลาดในการส่งออกไฟล์ Excel กรุณาลองใหม่อีกครั้ง')
+    }
+  }
+
   const generateCSV = (data: any) => {
     let csv = 'รายงานปี พ.ศ.,' + data.year + '\n'
     csv += 'รายงานปี ค.ศ.,' + (data.year - 543) + '\n\n'
@@ -257,6 +408,16 @@ export default function ReportsManagement() {
     csv += 'ชื่อ,จำนวน,หน่วย,ราคาต่อหน่วย,มูลค่ารวม\n'
     data.materials.forEach((material: any) => {
       csv += `"${material.name}",${material.quantity},"${material.unit}",${material.pricePerUnit},${material.quantity * material.pricePerUnit}\n`
+    })
+    
+    // Transactions data
+    csv += '\nข้อมูลธุรกรรม\n'
+    csv += 'วันที่,ประเภท,รายละเอียด,จำนวน,ราคา,มูลค่ารวม\n'
+    data.transactions.forEach((transaction: any) => {
+      // Parse the date to show in correct format
+      const parsedDate = parseThaiDate(transaction.date)
+      const formattedDate = `${parsedDate.getDate()}/${parsedDate.getMonth() + 1}/${parsedDate.getFullYear()}`
+      csv += `"${formattedDate}","${transaction.type}","${transaction.description}","${transaction.quantity}","${transaction.price}","${transaction.totalAmount}"\n`
     })
     
     return csv
@@ -594,10 +755,7 @@ export default function ReportsManagement() {
                 ส่งออกรายงานเป็นไฟล์ CSV
               </Button>
               <Button
-                onClick={() => {
-                  // For now, show a message about Excel export
-                  alert('ฟีเจอร์ส่งออก Excel จะพร้อมใช้งานในเวอร์ชันถัดไป\nตอนนี้กรุณาใช้ไฟล์ CSV แทน')
-                }}
+                onClick={handleExportToExcelFile}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md flex items-center gap-2"
               >
                 <Download className="h-5 w-5" />
