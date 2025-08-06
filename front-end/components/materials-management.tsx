@@ -32,6 +32,50 @@ export default function MaterialsManagement() {
   const [historyFilterYear, setHistoryFilterYear] = useState("")
   const [historyFilterSearch, setHistoryFilterSearch] = useState("")
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen)
+  }
+
+  const toggleHistoryFilter = () => {
+    setIsHistoryFilterOpen(!isHistoryFilterOpen)
+  }
+
+  // Utility function to parse Thai date format (DD/MM/YY) and convert to Date object for sorting
+  const parseThaiDateForSorting = (dateString: string): Date => {
+    try {
+      if (dateString.includes('/')) {
+        const parts = dateString.split('/')
+        if (parts.length === 3) {
+          const day = parseInt(parts[0])
+          const month = parseInt(parts[1]) - 1 // Month is 0-indexed
+          let year = parseInt(parts[2])
+          
+          // Handle 2-digit year (BE)
+          if (year < 100) {
+            year = year + 2500 // Convert 2-digit BE to 4-digit BE
+          }
+          
+          // Convert BE to CE (BE - 543 = CE)
+          const ceYear = year - 543
+          
+          return new Date(ceYear, month, day)
+        }
+      }
+      return new Date(dateString)
+    } catch (error) {
+      return new Date()
+    }
+  }
+
+  // Function to sort history by date (newest first)
+  const sortHistoryByDate = (historyArray: MaterialHistory[]): MaterialHistory[] => {
+    return [...historyArray].sort((a, b) => {
+      const dateA = parseThaiDateForSorting(a.date)
+      const dateB = parseThaiDateForSorting(b.date)
+      return dateB.getTime() - dateA.getTime() // Sort descending (newest first)
+    })
+  }
+
   // Fetch materials and history on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -42,7 +86,9 @@ export default function MaterialsManagement() {
 
         setMaterials(materialsData)
         setMaterialHistory(historyData)
-        setFilteredMaterialHistory(historyData)
+        // Sort history by date (newest first) when initially loading
+        const sortedHistory = sortHistoryByDate(historyData)
+        setFilteredMaterialHistory(sortedHistory)
       } catch (error) {
         console.error("Error fetching data:", error)
         setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -63,7 +109,9 @@ export default function MaterialsManagement() {
 
       setMaterials(materialsData)
       setMaterialHistory(historyData)
-      setFilteredMaterialHistory(historyData)
+      // Sort history by date (newest first) when refreshing
+      const sortedHistory = sortHistoryByDate(historyData)
+      setFilteredMaterialHistory(sortedHistory)
       setError(null)
     } catch (error) {
       console.error("Error refreshing data:", error)
@@ -71,14 +119,6 @@ export default function MaterialsManagement() {
     } finally {
       setIsRefreshing(false)
     }
-  }
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  const toggleHistoryFilter = () => {
-    setIsHistoryFilterOpen(!isHistoryFilterOpen)
   }
 
   const applyHistoryFilter = () => {
@@ -134,7 +174,9 @@ export default function MaterialsManagement() {
       )
     }
 
-    setFilteredMaterialHistory(filtered)
+    // Sort the filtered results by date (newest first)
+    const sortedFiltered = sortHistoryByDate(filtered)
+    setFilteredMaterialHistory(sortedFiltered)
   }
 
   const clearHistoryFilter = () => {
@@ -142,7 +184,9 @@ export default function MaterialsManagement() {
     setHistoryFilterMonth("")
     setHistoryFilterYear("")
     setHistoryFilterSearch("")
-    setFilteredMaterialHistory(materialHistory)
+    // Sort the material history by date (newest first) when clearing filters
+    const sortedHistory = sortHistoryByDate(materialHistory)
+    setFilteredMaterialHistory(sortedHistory)
   }
 
   // Generate year options dynamically

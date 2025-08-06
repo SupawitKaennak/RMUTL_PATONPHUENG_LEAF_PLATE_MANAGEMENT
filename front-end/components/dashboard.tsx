@@ -107,12 +107,12 @@ export default function Dashboard() {
         ])
         const materialHistoryData = await getMaterialHistory()
         
-        console.log('Loaded data:', {
-          transactions: transactionsData.length,
-          orders: ordersData.length,
-          materials: materialsData.length,
-          materialHistory: materialHistoryData.length
-        })
+        // console.log('Loaded data:', {
+        //   transactions: transactionsData.length,
+        //   orders: ordersData.length,
+        //   materials: materialsData.length,
+        //   materialHistory: materialHistoryData.length
+        // })
         
         setTransactions(transactionsData)
         setOrders(ordersData)

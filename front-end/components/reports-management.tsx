@@ -32,7 +32,7 @@ const parseThaiDate = (dateString: string): Date => {
         const ceYear = year - 543
         
         // Debug logging
-        console.log(`Date parsing: ${dateString} -> Day: ${day}, Month: ${month + 1}, BE Year: ${year}, CE Year: ${ceYear}`)
+        //console.log(`Date parsing: ${dateString} -> Day: ${day}, Month: ${month + 1}, BE Year: ${year}, CE Year: ${ceYear}`)
         
         return new Date(ceYear, month, day)
       }
