@@ -388,6 +388,7 @@ export default function MaterialsManagement() {
           >
             <Menu className="h-6 w-6" />
           </button>
+          <h1 className="text-xl font-semibold">ข้อมูลวัตถุดิบ</h1>
         </header>
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">

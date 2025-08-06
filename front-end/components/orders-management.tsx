@@ -39,6 +39,7 @@ export default function OrdersManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [productionQuantityError, setProductionQuantityError] = useState("")
 
   // New selling price modal state
   const [isAddSellingPriceModalOpen, setIsAddSellingPriceModalOpen] = useState(false)
@@ -443,8 +444,32 @@ export default function OrdersManagement() {
 
   const handleAddProduction = (id: string) => {
     setSelectedOrderId(id)
-    setProductionQuantity("")
     setIsAddProductionModalOpen(true)
+    setProductionQuantity("")
+    setProductionQuantityError("")
+  }
+
+  const handleProductionQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow numbers and empty string
+    if (value === "" || /^\d*$/.test(value)) {
+      setProductionQuantity(value)
+      if (productionQuantityError) {
+        setProductionQuantityError("")
+      }
+    }
+  }
+
+  const validateProductionQuantity = () => {
+    if (!productionQuantity.trim()) {
+      setProductionQuantityError("กรุณาระบุจำนวนที่ผลิต")
+      return false
+    }
+    if (isNaN(Number(productionQuantity)) || Number(productionQuantity) <= 0) {
+      setProductionQuantityError("กรุณาระบุจำนวนที่ผลิตเป็นตัวเลขที่มากกว่า 0")
+      return false
+    }
+    return true
   }
 
   const handleAddSellingPrice = (order: Order) => {
@@ -475,7 +500,12 @@ export default function OrdersManagement() {
   }
 
   const handleSaveProduction = async () => {
-    if (!selectedOrderId || !productionQuantity) return
+    if (!selectedOrderId) return
+
+    // Validate production quantity
+    if (!validateProductionQuantity()) {
+      return
+    }
 
     try {
       const order = orders.find((order) => order.id === selectedOrderId)
@@ -513,6 +543,7 @@ export default function OrdersManagement() {
       setIsAddProductionModalOpen(false)
       setSelectedOrderId(null)
       setProductionQuantity("")
+      setProductionQuantityError("")
     }
   }
 
@@ -594,6 +625,7 @@ export default function OrdersManagement() {
           >
             <Menu className="h-6 w-6" />
           </button>
+          <h1 className="text-xl font-semibold">ออเดอร์</h1>
         </header>
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">
@@ -1001,21 +1033,25 @@ export default function OrdersManagement() {
           <div className="p-6 space-y-4">
             <div>
               <Label htmlFor="production-quantity" className="block mb-2">
-                จำนวนที่ผลิต
+                จำนวนที่ผลิต <span className="text-red-500">*</span>
               </Label>
               <div className="flex items-center">
                 <Input
                   id="production-quantity"
                   type="text"
                   value={productionQuantity}
-                  onChange={(e) => setProductionQuantity(e.target.value)}
-                  className="flex-1"
+                  onChange={handleProductionQuantityChange}
+                  className={`flex-1 ${productionQuantityError ? 'border-red-500' : ''}`}
                   placeholder="ระบุจำนวน"
+                  required
                 />
                 <span className="ml-2">จาน</span>
               </div>
               {selectedOrderId && (
                 <p className="text-sm text-gray-600 mt-2">* ระบบจะลดวัตถุดิบในคลังตามสูตรการผลิตโดยอัตโนมัติ</p>
+              )}
+              {productionQuantityError && (
+                <p className="text-red-500 text-sm mt-1">{productionQuantityError}</p>
               )}
             </div>
 

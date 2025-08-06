@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, memo } from "react"
 import { Menu, Download, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, PieChart, Calendar, FileText } from "lucide-react"
 import Sidebar from "./sidebar"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,21 @@ import type { Transaction } from "@/types/transaction"
 import type { Order } from "@/types/order"
 import type { Material } from "@/types/material"
 import * as XLSX from 'xlsx'
+
+// Memoized Header Component to prevent re-rendering
+const ReportsHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => (
+  <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
+    <button
+      onClick={toggleSidebar}
+      className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+    >
+      <Menu className="h-6 w-6" />
+    </button>
+    <h1 className="text-xl font-semibold">สรุปและรายงานผล</h1>
+  </header>
+))
+
+ReportsHeader.displayName = 'ReportsHeader'
 
 // Utility function to parse Thai date format (DD/MM/YY)
 const parseThaiDate = (dateString: string): Date => {
@@ -427,10 +442,13 @@ export default function ReportsManagement() {
     return (
       <div className="flex h-screen bg-gray-100">
         <Sidebar isOpen={isSidebarOpen} activePage="สรุปรายงาน" onClose={() => setIsSidebarOpen(false)} />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <ReportsHeader toggleSidebar={toggleSidebar} />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -442,15 +460,7 @@ export default function ReportsManagement() {
       <Sidebar isOpen={isSidebarOpen} activePage="สรุปรายงาน" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
-          <button
-            onClick={toggleSidebar}
-            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-xl font-semibold">สรุปและรายงานผล</h1>
-        </header>
+        <ReportsHeader toggleSidebar={toggleSidebar} />
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">
           <div className="max-w-7xl mx-auto">

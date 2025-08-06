@@ -18,8 +18,44 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
   const [unit, setUnit] = useState("")
   const [quantity, setQuantity] = useState("")
   const [pricePerUnit, setPricePerUnit] = useState("")
+  const [errors, setErrors] = useState<{[key: string]: string}>({})
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {}
+
+    // Validate material name
+    if (!materialName.trim()) {
+      newErrors.materialName = "กรุณาระบุชื่อวัตถุดิบ"
+    }
+
+    // Validate unit
+    if (!unit) {
+      newErrors.unit = "กรุณาเลือกหน่วย"
+    }
+
+    // Validate quantity
+    if (!quantity.trim()) {
+      newErrors.quantity = "กรุณาระบุปริมาณ"
+    } else if (isNaN(Number(quantity)) || Number(quantity) < 0) {
+      newErrors.quantity = "กรุณาระบุปริมาณเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0"
+    }
+
+    // Validate price per unit
+    if (!pricePerUnit.trim()) {
+      newErrors.pricePerUnit = "กรุณาระบุราคาต่อหน่วย"
+    } else if (isNaN(Number(pricePerUnit)) || Number(pricePerUnit) < 0) {
+      newErrors.pricePerUnit = "กรุณาระบุราคาต่อหน่วยเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSave = () => {
+    if (!validateForm()) {
+      return
+    }
+
     // Get current date in Thai Buddhist Era format (DD/MM/YY)
     const today = new Date()
     const day = today.getDate().toString().padStart(2, "0")
@@ -31,10 +67,10 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
     // Create a new material object
     const newMaterial = {
       date: currentDate,
-      name: materialName,
-      quantity: Number.parseInt(quantity) || 0,
+      name: materialName.trim(),
+      quantity: Number(quantity),
       unit: unit,
-      pricePerUnit: Number.parseFloat(pricePerUnit) || 0,
+      pricePerUnit: Number(pricePerUnit),
     }
 
     onSave(newMaterial)
@@ -47,6 +83,43 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
     setUnit("")
     setQuantity("")
     setPricePerUnit("")
+    setErrors({})
+  }
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow numbers and empty string
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setQuantity(value)
+      if (errors.quantity) {
+        setErrors(prev => ({ ...prev, quantity: "" }))
+      }
+    }
+  }
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow numbers, decimal point, and empty string
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setPricePerUnit(value)
+      if (errors.pricePerUnit) {
+        setErrors(prev => ({ ...prev, pricePerUnit: "" }))
+      }
+    }
+  }
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMaterialName(e.target.value)
+    if (errors.materialName) {
+      setErrors(prev => ({ ...prev, materialName: "" }))
+    }
+  }
+
+  const handleUnitChange = (value: string) => {
+    setUnit(value)
+    if (errors.unit) {
+      setErrors(prev => ({ ...prev, unit: "" }))
+    }
   }
 
   return (
@@ -59,24 +132,28 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
         <div className="p-6 space-y-4">
           <div>
             <Label htmlFor="material-name" className="block mb-2">
-              ชื่อวัตถุดิบ
+              ชื่อวัตถุดิบ <span className="text-red-500">*</span>
             </Label>
             <Input
               id="material-name"
               type="text"
               value={materialName}
-              onChange={(e) => setMaterialName(e.target.value)}
+              onChange={handleNameChange}
               placeholder="ระบุชื่อวัตถุดิบ"
-              className="bg-white border-gray text-black"
+              className={`bg-white border-gray text-black ${errors.materialName ? 'border-red-500' : ''}`}
+              required
             />
+            {errors.materialName && (
+              <p className="text-red-500 text-sm mt-1">{errors.materialName}</p>
+            )}
           </div>
 
           <div>
             <Label htmlFor="material-unit" className="block mb-2">
-              หน่วย
+              หน่วย <span className="text-red-500">*</span>
             </Label>
-            <Select value={unit} onValueChange={setUnit}>
-              <SelectTrigger id="material-unit" className="bg-white border-gray text-black">
+            <Select value={unit} onValueChange={handleUnitChange}>
+              <SelectTrigger id="material-unit" className={`bg-white border-gray text-black ${errors.unit ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="เลือกหน่วย" />
               </SelectTrigger>
               <SelectContent className="bg-white text-black border-gray">
@@ -86,40 +163,50 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
                 <SelectItem value="กรัม" className="text-black focus:bg-gray-300 focus:text-black">
                   กรัม
                 </SelectItem>
-                <SelectItem value="อัน" className="text-black focus:bg-gray-300 focus:text-black">
+                <SelectItem value="ถุง" className="text-black focus:bg-gray-300 focus:text-black">
                   ถุง
                 </SelectItem>
               </SelectContent>
             </Select>
+            {errors.unit && (
+              <p className="text-red-500 text-sm mt-1">{errors.unit}</p>
+            )}
           </div>
 
           <div>
             <Label htmlFor="material-quantity" className="block mb-2">
-              ปริมาณ
+              ปริมาณ <span className="text-red-500">*</span>
             </Label>
             <Input
               id="material-quantity"
-              type="number"
+              type="text"
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              onChange={handleQuantityChange}
               placeholder="0"
-              className="bg-white border-gray text-black"
+              className={`bg-white border-gray text-black ${errors.quantity ? 'border-red-500' : ''}`}
+              required
             />
+            {errors.quantity && (
+              <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
+            )}
           </div>
 
           <div>
             <Label htmlFor="price-per-unit" className="block mb-2">
-              ราคาต่อหน่วย
+              ราคาต่อหน่วย <span className="text-red-500">*</span>
             </Label>
             <Input
               id="price-per-unit"
-              type="number"
-              step="0.01"
+              type="text"
               value={pricePerUnit}
-              onChange={(e) => setPricePerUnit(e.target.value)}
+              onChange={handlePriceChange}
               placeholder="0.00"
-              className="bg-white border-gray text-black"
+              className={`bg-white border-gray text-black ${errors.pricePerUnit ? 'border-red-500' : ''}`}
+              required
             />
+            {errors.pricePerUnit && (
+              <p className="text-red-500 text-sm mt-1">{errors.pricePerUnit}</p>
+            )}
           </div>
 
           <div className="flex justify-end pt-4">
