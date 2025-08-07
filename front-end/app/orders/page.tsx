@@ -1,5 +1,10 @@
 import OrdersManagement from "@/components/orders-management"
+import ProtectedRoute from "@/components/protected-route"
 
 export default function OrdersPage() {
-  return <OrdersManagement />
+  return (
+    <ProtectedRoute>
+      <OrdersManagement />
+    </ProtectedRoute>
+  )
 }

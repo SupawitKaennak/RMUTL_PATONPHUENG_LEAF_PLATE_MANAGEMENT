@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, memo } from "react"
-import { Menu, Download, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, PieChart, Calendar, FileText } from "lucide-react"
+import { Menu, Download, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, PieChart, Calendar, FileText, LogOut, User } from "lucide-react"
 import Sidebar from "./sidebar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -9,23 +9,46 @@ import { getTransactions } from "@/services/transaction-service"
 import { getOrders } from "@/services/order-service"
 import { getMaterials } from "@/services/material-service"
 import { getMaterialHistory } from "@/services/material-history-service"
+import { useAuth } from "@/context/auth-context"
 import type { Transaction } from "@/types/transaction"
 import type { Order } from "@/types/order"
 import type { Material } from "@/types/material"
 import * as XLSX from 'xlsx'
 
 // Memoized Header Component to prevent re-rendering
-const ReportsHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => (
-  <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
-    <button
-      onClick={toggleSidebar}
-      className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-    >
-      <Menu className="h-6 w-6" />
-    </button>
-    <h1 className="text-xl font-semibold">สรุปและรายงานผล</h1>
-  </header>
-))
+const ReportsHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
+  const { user, logout } = useAuth()
+  
+  return (
+    <header className="bg-blue-500 text-white p-4 flex items-center justify-between min-h-[56px]">
+      <div className="flex items-center">
+        <button
+          onClick={toggleSidebar}
+          className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-semibold">สรุปและรายงานผล</h1>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 text-sm">
+          <User className="h-4 w-4" />
+          <span>{user?.fullName || user?.username}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="text-white hover:bg-blue-600"
+        >
+          <LogOut className="h-4 w-4 mr-1" />
+          ออกจากระบบ
+        </Button>
+      </div>
+    </header>
+  )
+})
 
 ReportsHeader.displayName = 'ReportsHeader'
 
@@ -72,31 +95,44 @@ export default function ReportsManagement() {
   const [loading, setLoading] = useState(true)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() + 543)
   const [selectedReport, setSelectedReport] = useState("summary")
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const [transactionsData, ordersData, materialsData, materialHistoryData] = await Promise.all([
-          getTransactions(),
-          getOrders(),
-          getMaterials(),
-          getMaterialHistory(),
-        ])
-        
-        setTransactions(transactionsData)
-        setOrders(ordersData)
-        setMaterials(materialsData)
-        setMaterialHistory(materialHistoryData)
-      } catch (err) {
-        console.error("Error fetching reports data:", err)
-      } finally {
-        setLoading(false)
-      }
+    // รอให้ auth loading เสร็จก่อน แล้วค่อยตรวจสอบ authentication
+    if (!authLoading) {
+      fetchData()
+    }
+  }, [isAuthenticated, authLoading])
+
+  const fetchData = async () => {
+    // ตรวจสอบว่า user ได้ login แล้วหรือยัง
+    if (!isAuthenticated) {
+      console.log("🔒 User not authenticated, skipping reports fetch")
+      setLoading(false)
+      return
     }
 
-    fetchData()
-  }, [])
+    try {
+      setLoading(true)
+      console.log("📊 Fetching reports data...")
+      const [transactionsData, ordersData, materialsData, materialHistoryData] = await Promise.all([
+        getTransactions(),
+        getOrders(),
+        getMaterials(),
+        getMaterialHistory(),
+      ])
+      
+      setTransactions(transactionsData)
+      setOrders(ordersData)
+      setMaterials(materialsData)
+      setMaterialHistory(materialHistoryData)
+      console.log("✅ Reports data fetched successfully")
+    } catch (err) {
+      console.error("❌ Error fetching reports data:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)

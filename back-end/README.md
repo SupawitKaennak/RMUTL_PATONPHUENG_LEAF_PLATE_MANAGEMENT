@@ -74,7 +74,12 @@ ALLOWED_ORIGINS=http://localhost:3000
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_MAX_REQUESTS=1000
+
+# Rate Limiting Configuration:
+# - General endpoints: 1000 requests per 15 minutes
+# - Authentication endpoints: 10 requests per 15 minutes
+# - Health check endpoint: No rate limiting
 
 # Firebase Configuration
 FIREBASE_PROJECT_ID=your_project_id

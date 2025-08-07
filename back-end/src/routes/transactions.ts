@@ -2,23 +2,29 @@ import express from "express"
 import { db } from "../config/firebase"
 import { validateTransaction } from "../middleware/validation"
 import type { Transaction, ApiResponse } from "../types"
+import jwt from "jsonwebtoken"
 
 const router = express.Router()
 
-// Hard-coded Bearer token for simple auth
-const BEARER_TOKEN = "hardcodedtoken123"
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
 
-// Middleware to check Bearer token
+// Middleware to check JWT token
 router.use((req, res, next) => {
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ success: false, error: "Unauthorized: Missing Bearer token" })
+    return res.status(401).json({ success: false, error: "Unauthorized: Missing JWT token" })
   }
+  
   const token = authHeader.substring(7)
-  if (token !== BEARER_TOKEN) {
-    return res.status(401).json({ success: false, error: "Unauthorized: Invalid Bearer token" })
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any
+    req.user = decoded
+    next()
+  } catch (error) {
+    return res.status(401).json({ success: false, error: "Unauthorized: Invalid or expired token" })
   }
-  next()
 })
 
 // GET /api/transactions - ดึงข้อมูลรายรับ-รายจ่ายทั้งหมด

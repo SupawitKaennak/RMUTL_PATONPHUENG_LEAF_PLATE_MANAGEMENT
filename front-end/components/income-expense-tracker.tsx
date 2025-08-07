@@ -1,48 +1,100 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Menu, AlertCircle, RefreshCw, Filter } from "lucide-react"
+import { useState, useEffect, memo } from "react"
+import { Menu, Plus, Filter, RefreshCw, TrendingUp, TrendingDown, DollarSign, Calendar, Search, X, User, LogOut, AlertCircle } from "lucide-react"
 import Sidebar from "./sidebar"
-import TransactionTable from "./transaction-table"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAuth } from "@/context/auth-context"
+import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from "@/services/transaction-service"
+import type { Transaction } from "@/types/transaction"
 import AddTransactionModal from "./add-transaction-modal"
 import EditTransactionModal from "./edit-transaction-modal"
 import DeleteConfirmationModal from "./delete-confirmation-modal"
-import type { Transaction } from "@/types/transaction"
-import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from "@/services/transaction-service"
-import { Card } from "./ui/card"
+import TransactionTable from "./transaction-table"
+
+// Memoized Header Component
+const IncomeExpenseHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
+  const { user, logout } = useAuth()
+  
+  return (
+    <header className="bg-blue-500 text-white p-4 flex items-center justify-between min-h-[56px]">
+      <div className="flex items-center">
+        <button
+          onClick={toggleSidebar}
+          className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-semibold">รายรับ-รายจ่าย</h1>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 text-sm">
+          <User className="h-4 w-4" />
+          <span>{user?.fullName || user?.username}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="text-white hover:bg-blue-600"
+        >
+          <LogOut className="h-4 w-4 mr-1" />
+          ออกจากระบบ
+        </Button>
+      </div>
+    </header>
+  )
+})
+
+IncomeExpenseHeader.displayName = 'IncomeExpenseHeader'
 
 export default function IncomeExpenseTracker() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
-  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null)
   const [filterDate, setFilterDate] = useState("")
   const [filterMonth, setFilterMonth] = useState("")
   const [filterYear, setFilterYear] = useState("")
   const [filterSearch, setFilterSearch] = useState("")
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   // Fetch transactions on component mount
   useEffect(() => {
-    fetchTransactions()
-  }, [])
+    // รอให้ auth loading เสร็จก่อน แล้วค่อยตรวจสอบ authentication
+    if (!authLoading) {
+      fetchTransactions()
+    }
+  }, [isAuthenticated, authLoading])
 
   const fetchTransactions = async () => {
+    // ตรวจสอบว่า user ได้ login แล้วหรือยัง
+    if (!isAuthenticated) {
+      console.log("🔒 User not authenticated, skipping transactions fetch")
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
+      console.log("💰 Fetching transactions...")
       const transactionsData = await getTransactions()
       setTransactions(transactionsData)
       setFilteredTransactions(transactionsData)
       setError(null)
+      console.log("✅ Transactions fetched successfully")
     } catch (error) {
-      console.error("Error fetching transactions:", error)
+      console.error("❌ Error fetching transactions:", error)
       setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
     } finally {
       setLoading(false)
@@ -186,7 +238,7 @@ export default function IncomeExpenseTracker() {
   }, [filterDate, filterMonth, filterYear, filterSearch, transactions])
 
   const handleAddTransaction = () => {
-    setIsAddModalOpen(true)
+    setShowAddModal(true)
   }
 
   const handleSaveTransaction = async (newTransaction: Omit<Transaction, "id">) => {
@@ -212,8 +264,8 @@ export default function IncomeExpenseTracker() {
   const handleEditTransaction = (id: string) => {
     const transaction = transactions.find((t) => t.id === id)
     if (transaction) {
-      setSelectedTransaction(transaction)
-      setIsEditModalOpen(true)
+      setEditingTransaction(transaction)
+      setShowAddModal(true) // Reuse modal for editing
     }
   }
 
@@ -235,24 +287,26 @@ export default function IncomeExpenseTracker() {
   }
 
   const handleDeleteTransaction = (id: string) => {
-    setTransactionToDelete(id)
-    setIsDeleteModalOpen(true)
+    const transaction = transactions.find((t) => t.id === id)
+    if (transaction) {
+      setDeletingTransaction(transaction)
+      setShowAddModal(true) // Reuse modal for deletion confirmation
+    }
   }
 
   const confirmDelete = async () => {
-    if (transactionToDelete) {
+    if (deletingTransaction) {
       try {
         // Delete the transaction from Firestore
-        await deleteTransaction(transactionToDelete)
+        await deleteTransaction(deletingTransaction.id)
 
         // Remove the transaction from local state
-        const updatedTransactions = transactions.filter((t) => t.id !== transactionToDelete)
+        const updatedTransactions = transactions.filter((t) => t.id !== deletingTransaction.id)
         setTransactions(updatedTransactions)
         setFilteredTransactions(updatedTransactions)
 
         // Close the modal and reset state
-        setIsDeleteModalOpen(false)
-        setTransactionToDelete(null)
+        setDeletingTransaction(null)
       } catch (error) {
         console.error("Error deleting transaction:", error)
         setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -267,15 +321,7 @@ export default function IncomeExpenseTracker() {
       <Sidebar isOpen={isSidebarOpen} activePage="รายรับ - รายจ่าย" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
-          <button
-            onClick={toggleSidebar}
-            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-xl font-semibold">รายรับ - รายจ่าย</h1>
-        </header>
+        <IncomeExpenseHeader toggleSidebar={toggleSidebar} />
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">
           {error && (
@@ -434,24 +480,24 @@ export default function IncomeExpenseTracker() {
       </div>
 
       <AddTransactionModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
         onSave={handleSaveTransaction}
       />
 
       <EditTransactionModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
         onSave={handleUpdateTransaction}
-        transaction={selectedTransaction}
+        transaction={editingTransaction}
       />
 
       <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        isOpen={!!deletingTransaction}
+        onClose={() => setDeletingTransaction(null)}
         onConfirm={confirmDelete}
         title="ลบรายการ"
-        message="คุณต้องการลบรายการนี้ใช่หรือไม่?"
+        message={`คุณต้องการลบรายการ "${deletingTransaction?.description}" หรือไม่?`}
       />
     </div>
   )

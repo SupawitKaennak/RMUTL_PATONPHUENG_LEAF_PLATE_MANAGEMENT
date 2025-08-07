@@ -1,26 +1,33 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import {
-  type User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-} from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import React, { createContext, useContext, useEffect, useState } from "react"
+import { apiClient } from "@/services/api-client"
+
+interface User {
+  id: string
+  username: string
+  email: string
+  fullName: string
+}
+
+interface AuthResponse {
+  token: string
+  user: User
+}
 
 interface AuthContextType {
   user: User | null
-  loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
-  signOut: () => Promise<void>
+  token: string | null
+  login: (username: string, password: string) => Promise<boolean>
+  register: (username: string, email: string, password: string, fullName: string) => Promise<boolean>
+  logout: () => void
+  isLoading: boolean
+  isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
@@ -28,57 +35,142 @@ export function useAuth() {
   return context
 }
 
-interface AuthProviderProps {
-  children: ReactNode
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [token, setToken] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
+  // ตรวจสอบ token จาก localStorage เมื่อ component mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
+    const checkInitialAuth = async () => {
+      const storedToken = localStorage.getItem("authToken")
+      if (storedToken) {
+        console.log("🔍 Found stored token, checking auth status...")
+        setToken(storedToken)
+        await checkAuthStatus()
+      } else {
+        console.log("🔍 No stored token found")
+        setIsLoading(false)
+      }
+    }
+    
+    checkInitialAuth()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  // ตั้งค่า auto logout เมื่อ token หมดอายุ (30 นาที)
+  useEffect(() => {
+    if (token) {
+      const tokenExpiry = localStorage.getItem("tokenExpiry")
+      if (tokenExpiry) {
+        const expiryTime = parseInt(tokenExpiry)
+        const now = Date.now()
+        const timeUntilExpiry = expiryTime - now
+
+        if (timeUntilExpiry <= 0) {
+          // Token หมดอายุแล้ว
+          logout()
+        } else {
+          // ตั้ง timer สำหรับ auto logout
+          const timer = setTimeout(() => {
+            logout()
+          }, timeUntilExpiry)
+
+          return () => clearTimeout(timer)
+        }
+      }
+    }
+  }, [token])
+
+  const checkAuthStatus = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      console.log("🔍 Checking auth status...")
+      const response = await apiClient.checkAuthStatus()
+      if (response.success && response.data) {
+        console.log("✅ Auth status valid:", response.data)
+        setUser(response.data as User)
+      } else {
+        console.log("❌ Auth status invalid, logging out")
+        logout()
+      }
     } catch (error) {
-      console.error("Error signing in:", error)
-      throw error
+      console.error("❌ Error checking auth status:", error)
+      // ถ้าไม่มี token หรือ token ไม่ถูกต้อง ให้ logout
+      logout()
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const signUp = async (email: string, password: string) => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
+      setIsLoading(true)
+      const response = await apiClient.login(username, password)
+      
+      if (response.success && response.data) {
+        const { token: newToken, user: userData } = response.data as AuthResponse
+        
+        // บันทึก token และ expiry time
+        const expiryTime = Date.now() + (30 * 60 * 1000) // 30 นาที
+        localStorage.setItem("authToken", newToken)
+        localStorage.setItem("tokenExpiry", expiryTime.toString())
+        
+        setToken(newToken)
+        setUser(userData)
+        return true
+      }
+      return false
     } catch (error) {
-      console.error("Error signing up:", error)
-      throw error
+      console.error("Login error:", error)
+      return false
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const signOut = async () => {
+  const register = async (username: string, email: string, password: string, fullName: string): Promise<boolean> => {
     try {
-      await firebaseSignOut(auth)
+      setIsLoading(true)
+      const response = await apiClient.register(username, email, password, fullName)
+      
+      if (response.success && response.data) {
+        const { token: newToken, user: userData } = response.data as AuthResponse
+        
+        // บันทึก token และ expiry time
+        const expiryTime = Date.now() + (30 * 60 * 1000) // 30 นาที
+        localStorage.setItem("authToken", newToken)
+        localStorage.setItem("tokenExpiry", expiryTime.toString())
+        
+        setToken(newToken)
+        setUser(userData)
+        return true
+      }
+      return false
     } catch (error) {
-      console.error("Error signing out:", error)
-      throw error
+      console.error("Register error:", error)
+      return false
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const value = {
+  const logout = () => {
+    localStorage.removeItem("authToken")
+    localStorage.removeItem("tokenExpiry")
+    setToken(null)
+    setUser(null)
+    setIsLoading(false)
+  }
+
+  const value: AuthContextType = {
     user,
-    loading,
-    signIn,
-    signUp,
-    signOut,
+    token,
+    login,
+    register,
+    logout,
+    isLoading,
+    isAuthenticated: !!user && !!token,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+

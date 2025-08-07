@@ -1,5 +1,5 @@
 // HTTP Client for API communication
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 interface ApiResponse<T = any> {
   success: boolean
@@ -11,17 +11,22 @@ interface ApiResponse<T = any> {
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api${endpoint}`
+      const url = `${API_BASE_URL}/api${endpoint}`
+      
+      // Get token from localStorage (except for auth endpoints)
+      const token = !endpoint.startsWith('/auth') ? localStorage.getItem("authToken") : null
       
       const config: RequestInit = {
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer hardcodedtoken123",
+          ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
         ...options,
       }
 
+      console.log(`🌐 Making API request to: ${url}`)
+      
       const response = await fetch(url, config)
       const data = await response.json()
 
@@ -148,6 +153,39 @@ class ApiClient {
   async deleteTransaction(id: string) {
     return this.request(`/transactions/${id}`, {
       method: "DELETE",
+    })
+  }
+
+  // Auth API (ไม่ต้องใช้ token)
+  async login(username: string, password: string) {
+    return this.request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    })
+  }
+
+  async register(username: string, email: string, password: string, fullName: string) {
+    return this.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, email, password, fullName }),
+    })
+  }
+
+  async logout() {
+    return this.request("/auth/logout", {
+      method: "POST",
+    })
+  }
+
+  async checkAuthStatus() {
+    const token = localStorage.getItem("authToken")
+    if (!token) {
+      throw new Error("No token found")
+    }
+    return this.request("/auth/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
   }
 }

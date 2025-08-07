@@ -1,114 +1,160 @@
 "use client"
 
-import { useState, useEffect, useContext } from "react"
-import { Menu, Calendar, AlertCircle, Info, Filter } from "lucide-react"
+import { useState, useEffect, useContext, memo } from "react"
+import { Menu, Plus, Filter, RefreshCw, Package, Trash2, Edit, Eye, User, LogOut, AlertCircle, Info, Calendar } from "lucide-react"
 import Sidebar from "./sidebar"
-import { Card } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { useAuth } from "@/context/auth-context"
+import { MaterialContext } from "./material-provider"
+import {
+  getOrders,
+  addOrder,
+  updateOrder,
+  deleteOrder,
+  addProductionQuantity,
+  updateElectricityCost,
+} from "@/services/order-service"
+import type { Order } from "@/types/order"
 import DeleteOrderModal from "./delete-order-modal"
 import EditOrderModal from "./edit-order-modal"
 import SelectMachineModal from "./select-machine-modal"
 import AddSellingPriceModal from "./add-selling-price-modal"
-import { MaterialContext } from "./material-provider"
-import type { Order } from "@/types/order"
-import {
-  getOrders,
-  addOrder as addOrderService,
-  updateOrder as updateOrderService,
-  deleteOrder as deleteOrderService,
-  addProductionQuantity,
-  updateElectricityCost,
-  getDishRecipes,
-} from "@/services/order-service"
-import { calculateMaterialCost, calculateTotalCost } from "@/lib/constants"
+import { DISH_RECIPES, calculateMaterialCost, calculateTotalCost } from "@/lib/constants"
+
+// Memoized Header Component
+const OrdersHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
+  const { user, logout } = useAuth()
+  
+  return (
+    <header className="bg-blue-500 text-white p-4 flex items-center justify-between min-h-[56px]">
+      <div className="flex items-center">
+        <button
+          onClick={toggleSidebar}
+          className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-semibold">จัดการออเดอร์</h1>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 text-sm">
+          <User className="h-4 w-4" />
+          <span>{user?.fullName || user?.username}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="text-white hover:bg-blue-600"
+        >
+          <LogOut className="h-4 w-4 mr-1" />
+          ออกจากระบบ
+        </Button>
+      </div>
+    </header>
+  )
+})
+
+OrdersHeader.displayName = 'OrdersHeader'
 
 export default function OrdersManagement() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false)
-  const [isAddProductionModalOpen, setIsAddProductionModalOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isSelectMachineModalOpen, setIsSelectMachineModalOpen] = useState(false)
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [productionQuantity, setProductionQuantity] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [productionQuantityError, setProductionQuantityError] = useState("")
-
-  // New selling price modal state
-  const [isAddSellingPriceModalOpen, setIsAddSellingPriceModalOpen] = useState(false)
-  const [selectedOrderForSellingPrice, setSelectedOrderForSellingPrice] = useState<Order | null>(null)
-
-  // New order form state
-  const [newOrderDate, setNewOrderDate] = useState("")
-  const [newOrderProduct, setNewOrderProduct] = useState("")
-  const [newOrderQuantity, setNewOrderQuantity] = useState("")
-
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null)
+  const [deletingOrder, setDeletingOrder] = useState<Order | null>(null)
+  const [selectedOrderForProduction, setSelectedOrderForProduction] = useState<Order | null>(null)
+  const [selectedOrderForMachine, setSelectedOrderForMachine] = useState<Order | null>(null)
+  const [selectedOrderForSellingPrice, setSelectedOrderForSellingPrice] = useState<Order | null>(null)
+  const [productionQuantity, setProductionQuantity] = useState("")
   const [filterDate, setFilterDate] = useState("")
   const [filterMonth, setFilterMonth] = useState("")
   const [filterYear, setFilterYear] = useState("")
   const [filterSearch, setFilterSearch] = useState("")
+  const [newOrderDate, setNewOrderDate] = useState("")
+  const [newOrderProduct, setNewOrderProduct] = useState("")
+  const [newOrderQuantity, setNewOrderQuantity] = useState("")
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isAddProductionModalOpen, setIsAddProductionModalOpen] = useState(false)
+  const [isSelectMachineModalOpen, setIsSelectMachineModalOpen] = useState(false)
+  const [isAddSellingPriceModalOpen, setIsAddSellingPriceModalOpen] = useState(false)
+  const [productionQuantityError, setProductionQuantityError] = useState("")
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   // Try to access the material context
   const materialContext = useContext(MaterialContext)
 
   // Get dish recipes for display
-  const dishRecipes = getDishRecipes()
-
-  // ใช้ฟังก์ชันจาก constants แทน
+  const dishRecipes = DISH_RECIPES
 
   // Fetch orders on component mount
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true)
-        const ordersData = await getOrders()
-        
-        // เรียงลำดับออเดอร์ตาม LOT number (A1 อยู่ล่างสุด, A2, A3... อยู่ข้างบน)
-        const sortedOrders = ordersData.sort((a, b) => {
-          // แยกตัวอักษรและตัวเลขจาก LOT
-          const getLotNumber = (lot: string) => {
-            const match = lot.match(/^([A-Z]+)(\d+)$/)
-            if (match) {
-              const [, prefix, number] = match
-              return { prefix, number: parseInt(number) }
-            }
-            return { prefix: '', number: 0 }
-          }
-          
-          const lotA = getLotNumber(a.lot)
-          const lotB = getLotNumber(b.lot)
-          
-          // ถ้า prefix เหมือนกัน ให้เรียงตามตัวเลข (มากไปน้อย)
-          if (lotA.prefix === lotB.prefix) {
-            return lotB.number - lotA.number
-          }
-          
-          // ถ้า prefix ต่างกัน ให้เรียงตามตัวอักษร
-          return lotA.prefix.localeCompare(lotB.prefix)
-        })
-        
-        setOrders(sortedOrders)
-        setFilteredOrders(sortedOrders)
-      } catch (error) {
-        console.error("Error fetching orders:", error)
-        setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
-      } finally {
-        setLoading(false)
-      }
+    // รอให้ auth loading เสร็จก่อน แล้วค่อยตรวจสอบ authentication
+    if (!authLoading) {
+      fetchOrders()
+    }
+  }, [isAuthenticated, authLoading])
+
+  const fetchOrders = async () => {
+    // ตรวจสอบว่า user ได้ login แล้วหรือยัง
+    if (!isAuthenticated) {
+      console.log("🔒 User not authenticated, skipping orders fetch")
+      setLoading(false)
+      return
     }
 
-    fetchOrders()
-  }, [])
+    try {
+      setLoading(true)
+      console.log("📋 Fetching orders...")
+      const ordersData = await getOrders()
+      
+      // เรียงลำดับออเดอร์ตาม LOT number (A1 อยู่ล่างสุด, A2, A3... อยู่ข้างบน)
+      const sortedOrders = ordersData.sort((a, b) => {
+        // แยกตัวอักษรและตัวเลขจาก LOT
+        const getLotNumber = (lot: string) => {
+          const match = lot.match(/^([A-Z]+)(\d+)$/)
+          if (match) {
+            const [, prefix, number] = match
+            return { prefix, number: parseInt(number) }
+          }
+          return { prefix: '', number: 0 }
+        }
+        
+        const lotA = getLotNumber(a.lot)
+        const lotB = getLotNumber(b.lot)
+        
+        // ถ้า prefix เหมือนกัน ให้เรียงตามตัวเลข (มากไปน้อย)
+        if (lotA.prefix === lotB.prefix) {
+          return lotB.number - lotA.number
+        }
+        
+        // ถ้า prefix ต่างกัน ให้เรียงตามตัวอักษร
+        return lotA.prefix.localeCompare(lotB.prefix)
+      })
+      
+      setOrders(sortedOrders)
+      setFilteredOrders(sortedOrders)
+      console.log("✅ Orders fetched successfully")
+    } catch (error) {
+      console.error("❌ Error fetching orders:", error)
+      setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Auto-hide success message after 5 seconds
   useEffect(() => {
@@ -262,10 +308,7 @@ export default function OrdersManagement() {
   }, [filterDate, filterMonth, filterYear, filterSearch, orders])
 
   const handleAddOrder = () => {
-    setNewOrderDate("")
-    setNewOrderProduct("")
-    setNewOrderQuantity("")
-    setIsAddOrderModalOpen(true)
+    setShowAddModal(true)
   }
 
   // Function to get current date in Thai Buddhist Era format (DD/MM/YY)
@@ -313,7 +356,7 @@ export default function OrdersManagement() {
       }
 
       // Add the new order to Firestore
-      const orderId = await addOrderService(newOrder)
+      const orderId = await addOrder(newOrder)
 
       // Add the order to local state with the new ID
       const orderWithId: Order = {
@@ -344,7 +387,7 @@ export default function OrdersManagement() {
       
       setOrders(updatedOrders)
       setFilteredOrders(updatedOrders)
-      setIsAddOrderModalOpen(false)
+      setShowAddModal(false)
       setSuccessMessage(`เพิ่มออเดอร์ ${newLotNumber} สำเร็จ`)
     } catch (error) {
       console.error("Error saving order:", error)
@@ -355,7 +398,7 @@ export default function OrdersManagement() {
   const handleEditOrder = (id: string) => {
     const order = orders.find((order) => order.id === id)
     if (order) {
-      setSelectedOrder(order)
+      setEditingOrder(order)
       setIsEditModalOpen(true)
     }
   }
@@ -363,7 +406,7 @@ export default function OrdersManagement() {
   const handleUpdateOrder = async (updatedOrder: Order) => {
     try {
       // Update the order in Firestore and get updated order data
-      const updatedOrderData = await updateOrderService(updatedOrder.id, updatedOrder)
+      const updatedOrderData = await updateOrder(updatedOrder.id, updatedOrder)
 
       if (updatedOrderData) {
         // Update the order in local state with updated data from backend
@@ -415,15 +458,18 @@ export default function OrdersManagement() {
   }
 
   const handleDeleteOrder = (id: string) => {
-    setSelectedOrderId(id)
-    setIsDeleteModalOpen(true)
+    const order = orders.find((order) => order.id === id)
+    if (order) {
+      setDeletingOrder(order)
+      setIsDeleteModalOpen(true)
+    }
   }
 
   const confirmDeleteOrder = async () => {
-    if (selectedOrderId) {
+    if (deletingOrder?.id) {
       try {
-        await deleteOrderService(selectedOrderId)
-        const updatedOrders = orders.filter((order) => order.id !== selectedOrderId)
+        await deleteOrder(deletingOrder.id)
+        const updatedOrders = orders.filter((order) => order.id !== deletingOrder.id)
         setOrders(updatedOrders)
         setFilteredOrders(updatedOrders)
         setSuccessMessage("ลบออเดอร์สำเร็จ")
@@ -437,16 +483,18 @@ export default function OrdersManagement() {
         setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
       } finally {
         setIsDeleteModalOpen(false)
-        setSelectedOrderId(null)
+        setDeletingOrder(null)
       }
     }
   }
 
   const handleAddProduction = (id: string) => {
-    setSelectedOrderId(id)
-    setIsAddProductionModalOpen(true)
-    setProductionQuantity("")
-    setProductionQuantityError("")
+    const order = orders.find((order) => order.id === id)
+    if (order) {
+      setSelectedOrderForProduction(order)
+      setIsAddProductionModalOpen(true)
+      setProductionQuantity("")
+    }
   }
 
   const handleProductionQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -490,7 +538,7 @@ export default function OrdersManagement() {
         totalCost,
       }
 
-      await updateOrderService(updatedOrder.id, orderWithUpdatedCosts)
+      await updateOrder(updatedOrder.id, orderWithUpdatedCosts)
       setOrders(orders.map((order) => (order.id === updatedOrder.id ? orderWithUpdatedCosts : order)))
       setSuccessMessage("อัปเดตราคาขายสำเร็จ")
     } catch (error) {
@@ -500,7 +548,7 @@ export default function OrdersManagement() {
   }
 
   const handleSaveProduction = async () => {
-    if (!selectedOrderId) return
+    if (!selectedOrderForProduction?.id) return
 
     // Validate production quantity
     if (!validateProductionQuantity()) {
@@ -508,10 +556,10 @@ export default function OrdersManagement() {
     }
 
     try {
-      const order = orders.find((order) => order.id === selectedOrderId)
+      const order = selectedOrderForProduction
       if (!order) return
 
-      const result = await addProductionQuantity(selectedOrderId, productionQuantity, order.product)
+      const result = await addProductionQuantity(order.id, productionQuantity, order.product)
 
       if (result.success) {
         // Calculate new material cost
@@ -526,7 +574,7 @@ export default function OrdersManagement() {
           materialCost,
           totalCost,
         }
-        setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
+        setOrders(orders.map((o) => (o.id === order.id ? updatedOrder : o)))
         setSuccessMessage("เพิ่มจำนวนการผลิตสำเร็จ")
 
         // Refresh material data if context is available
@@ -541,25 +589,28 @@ export default function OrdersManagement() {
       setError("ไม่สามารถเพิ่มจำนวนการผลิตได้ กรุณาลองใหม่อีกครั้ง")
     } finally {
       setIsAddProductionModalOpen(false)
-      setSelectedOrderId(null)
+      setSelectedOrderForProduction(null)
       setProductionQuantity("")
       setProductionQuantityError("")
     }
   }
 
   const handleSelectMachine = (id: string) => {
-    setSelectedOrderId(id)
-    setIsSelectMachineModalOpen(true)
+    const order = orders.find((order) => order.id === id)
+    if (order) {
+      setSelectedOrderForMachine(order)
+      setIsSelectMachineModalOpen(true)
+    }
   }
 
   const handleSaveMachineSelection = async (costPerUnit: number, totalElectricityCost: number) => {
-    if (!selectedOrderId) return
+    if (!selectedOrderForMachine?.id) return
 
     try {
-      const order = orders.find((order) => order.id === selectedOrderId)
+      const order = selectedOrderForMachine
       if (!order) return
 
-      const success = await updateElectricityCost(selectedOrderId, totalElectricityCost, order.materialCost)
+      const success = await updateElectricityCost(order.id, totalElectricityCost, order.materialCost)
 
       if (success) {
         // Calculate new total cost
@@ -574,7 +625,7 @@ export default function OrdersManagement() {
           materialCost,
           totalCost,
         }
-        setOrders(orders.map((o) => (o.id === selectedOrderId ? updatedOrder : o)))
+        setOrders(orders.map((o) => (o.id === order.id ? updatedOrder : o)))
         setSuccessMessage("อัปเดตค่าไฟการผลิตสำเร็จ")
       } else {
         setError("ไม่สามารถอัปเดตค่าไฟการผลิตได้")
@@ -584,7 +635,7 @@ export default function OrdersManagement() {
       setError("ไม่สามารถอัปเดตค่าไฟการผลิตได้ กรุณาลองใหม่อีกครั้ง")
     } finally {
       setIsSelectMachineModalOpen(false)
-      setSelectedOrderId(null)
+      setSelectedOrderForMachine(null)
     }
   }
 
@@ -599,7 +650,7 @@ export default function OrdersManagement() {
         status: newStatus,
       }
 
-      await updateOrderService(orderId, updatedOrder)
+      await updateOrder(orderId, updatedOrder)
       
       // Update the order in local state
       setOrders(orders.map((o) => (o.id === orderId ? updatedOrder : o)))
@@ -618,15 +669,7 @@ export default function OrdersManagement() {
       <Sidebar isOpen={isSidebarOpen} activePage="ออเดอร์" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
-          <button
-            onClick={toggleSidebar}
-            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-xl font-semibold">ออเดอร์</h1>
-        </header>
+        <OrdersHeader toggleSidebar={toggleSidebar} />
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">
           {error && (
@@ -949,7 +992,7 @@ export default function OrdersManagement() {
       </div>
 
       {/* Add Order Modal */}
-      <Dialog open={isAddOrderModalOpen} onOpenChange={setIsAddOrderModalOpen}>
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg">
           <DialogHeader className="bg-teal-400 text-white p-4">
             <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
@@ -1010,7 +1053,7 @@ export default function OrdersManagement() {
 
             <div className="flex justify-between pt-4">
               <Button
-                onClick={() => setIsAddOrderModalOpen(false)}
+                onClick={() => setShowAddModal(false)}
                 className="bg-yellow-300 hover:bg-yellow-400 text-black px-6"
               >
                 ยกเลิก
@@ -1047,7 +1090,7 @@ export default function OrdersManagement() {
                 />
                 <span className="ml-2">จาน</span>
               </div>
-              {selectedOrderId && (
+              {selectedOrderForProduction && (
                 <p className="text-sm text-gray-600 mt-2">* ระบบจะลดวัตถุดิบในคลังตามสูตรการผลิตโดยอัตโนมัติ</p>
               )}
               {productionQuantityError && (
@@ -1082,7 +1125,7 @@ export default function OrdersManagement() {
         isOpen={isSelectMachineModalOpen}
         onClose={() => setIsSelectMachineModalOpen(false)}
         onSelect={handleSaveMachineSelection}
-        quantity={orders.find((order) => order.id === selectedOrderId)?.remainingQuantity || ""}
+        quantity={selectedOrderForMachine?.remainingQuantity || ""}
       />
 
       {/* Delete Order Modal */}
@@ -1097,7 +1140,7 @@ export default function OrdersManagement() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleUpdateOrder}
-        order={selectedOrder}
+        order={editingOrder}
       />
     </div>
   )

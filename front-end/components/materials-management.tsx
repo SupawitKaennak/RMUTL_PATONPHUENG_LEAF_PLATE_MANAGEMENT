@@ -1,43 +1,119 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Menu, RefreshCw, AlertCircle, Filter } from "lucide-react"
+import { useState, useEffect, memo } from "react"
+import { Menu, Plus, Filter, RefreshCw, Package, Trash2, Edit, Eye, User, LogOut, AlertCircle } from "lucide-react"
 import Sidebar from "./sidebar"
-import { Card } from "@/components/ui/card"
-import AddMaterialModal from "./add-material-modal"
-import DeleteMaterialModal from "./delete-material-modal"
-import type { Material, MaterialHistory } from "@/types/material"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAuth } from "@/context/auth-context"
 import {
   getMaterials,
-  getMaterialHistory,
   addMaterial,
-  addMaterialHistory,
+  updateMaterial,
   deleteMaterial,
+  decreaseMaterialQuantity,
+  addMaterialHistory,
 } from "@/services/material-service"
+import { getMaterialHistory } from "@/services/material-history-service"
+import type { Material } from "@/types/material"
+import type { MaterialHistory } from "@/types/material"
+import AddMaterialModal from "./add-material-modal"
+import DeleteMaterialModal from "./delete-material-modal"
+import SelectMachineModal from "./select-machine-modal"
+
+// Memoized Header Component
+const MaterialsHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
+  const { user, logout } = useAuth()
+  
+  return (
+    <header className="bg-blue-500 text-white p-4 flex items-center justify-between min-h-[56px]">
+      <div className="flex items-center">
+        <button
+          onClick={toggleSidebar}
+          className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-semibold">จัดการวัตถุดิบ</h1>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 text-sm">
+          <User className="h-4 w-4" />
+          <span>{user?.fullName || user?.username}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="text-white hover:bg-blue-600"
+        >
+          <LogOut className="h-4 w-4 mr-1" />
+          ออกจากระบบ
+        </Button>
+      </div>
+    </header>
+  )
+})
+
+MaterialsHeader.displayName = 'MaterialsHeader'
 
 export default function MaterialsManagement() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isHistoryFilterOpen, setIsHistoryFilterOpen] = useState(false)
   const [materials, setMaterials] = useState<Material[]>([])
   const [materialHistory, setMaterialHistory] = useState<MaterialHistory[]>([])
   const [filteredMaterialHistory, setFilteredMaterialHistory] = useState<MaterialHistory[]>([])
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isHistoryFilterOpen, setIsHistoryFilterOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
+  const [deletingMaterial, setDeletingMaterial] = useState<Material | null>(null)
+  const [selectedMaterialForDecrease, setSelectedMaterialForDecrease] = useState<Material | null>(null)
   const [historyFilterDate, setHistoryFilterDate] = useState("")
   const [historyFilterMonth, setHistoryFilterMonth] = useState("")
   const [historyFilterYear, setHistoryFilterYear] = useState("")
   const [historyFilterSearch, setHistoryFilterSearch] = useState("")
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
+  // Fetch materials and history on component mount
+  useEffect(() => {
+    // รอให้ auth loading เสร็จก่อน แล้วค่อยตรวจสอบ authentication
+    if (!authLoading) {
+      fetchData()
+    }
+  }, [isAuthenticated, authLoading])
 
-  const toggleHistoryFilter = () => {
-    setIsHistoryFilterOpen(!isHistoryFilterOpen)
+  const fetchData = async () => {
+    // ตรวจสอบว่า user ได้ login แล้วหรือยัง
+    if (!isAuthenticated) {
+      console.log("🔒 User not authenticated, skipping materials fetch")
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      console.log("📦 Fetching materials and history...")
+      const materialsData = await getMaterials()
+      const historyData = await getMaterialHistory()
+
+      setMaterials(materialsData)
+      setMaterialHistory(historyData)
+      // Sort history by date (newest first) when initially loading
+      const sortedHistory = sortHistoryByDate(historyData)
+      setFilteredMaterialHistory(sortedHistory)
+      console.log("✅ Materials and history fetched successfully")
+    } catch (error) {
+      console.error("❌ Error fetching data:", error)
+      setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Utility function to parse Thai date format (DD/MM/YY) and convert to Date object for sorting
@@ -75,30 +151,6 @@ export default function MaterialsManagement() {
       return dateB.getTime() - dateA.getTime() // Sort descending (newest first)
     })
   }
-
-  // Fetch materials and history on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const materialsData = await getMaterials()
-        const historyData = await getMaterialHistory()
-
-        setMaterials(materialsData)
-        setMaterialHistory(historyData)
-        // Sort history by date (newest first) when initially loading
-        const sortedHistory = sortHistoryByDate(historyData)
-        setFilteredMaterialHistory(sortedHistory)
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [])
 
   // เพิ่มฟังก์ชันสำหรับรีเฟรชข้อมูลวัตถุดิบ
   const refreshMaterialsData = async () => {
@@ -236,7 +288,7 @@ export default function MaterialsManagement() {
   }, [historyFilterDate, historyFilterMonth, historyFilterYear, historyFilterSearch, materialHistory])
 
   const handleAddMaterial = () => {
-    setIsAddModalOpen(true)
+    setShowAddModal(true)
   }
 
   const handleSaveMaterial = async (newMaterial: Omit<Material, "id">) => {
@@ -295,7 +347,7 @@ export default function MaterialsManagement() {
       }
 
       // ปิด modal หลังจากบันทึกข้อมูลเสร็จ
-      setIsAddModalOpen(false)
+      setShowAddModal(false)
     } catch (error) {
       console.error("Error saving material:", error)
       setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
@@ -303,68 +355,64 @@ export default function MaterialsManagement() {
   }
 
   const handleDeleteMaterial = (id: string) => {
-    setSelectedMaterialId(id)
-    setIsDeleteModalOpen(true)
+    const material = materials.find((material) => material.id === id)
+    if (material) {
+      setDeletingMaterial(material)
+      setIsDeleteModalOpen(true)
+    }
   }
 
   const confirmDeleteMaterial = async () => {
-    if (selectedMaterialId) {
+    if (deletingMaterial) {
       try {
-        // หาข้อมูลวัตถุดิบที่จะลบ
-        const materialToDelete = materials.find((material) => material.id === selectedMaterialId)
+        // สร้างประวัติการลบ
+        const historyEntry: Omit<MaterialHistory, "id"> = {
+          action: "ลบ",
+          date: new Date().toLocaleDateString("th-TH", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          }),
+          name: deletingMaterial.name,
+          quantity: deletingMaterial.quantity,
+          unit: deletingMaterial.unit,
+        }
 
-        if (materialToDelete) {
-          // สร้างประวัติการลบ
-          const historyEntry: Omit<MaterialHistory, "id"> = {
-            action: "ลบ",
-            date: new Date().toLocaleDateString("th-TH", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit",
-            }),
-            name: materialToDelete.name,
-            quantity: materialToDelete.quantity,
-            unit: materialToDelete.unit,
-          }
+        // ตรวจสอบข้อมูลก่อนส่ง
+        if (!historyEntry.action || !historyEntry.date || !historyEntry.name || historyEntry.quantity === undefined || !historyEntry.unit) {
+          console.error("Invalid history data:", historyEntry)
+          setError("ข้อมูลไม่ครบถ้วน กรุณาลองใหม่อีกครั้ง")
+          return
+        }
 
-          // ตรวจสอบข้อมูลก่อนส่ง
-          if (!historyEntry.action || !historyEntry.date || !historyEntry.name || historyEntry.quantity === undefined || !historyEntry.unit) {
-            console.error("Invalid history data:", historyEntry)
-            setError("ข้อมูลไม่ครบถ้วน กรุณาลองใหม่อีกครั้ง")
-            return
-          }
+        try {
+          // บันทึกประวัติลงใน Firestore
+          const savedHistory = await addMaterialHistory(historyEntry)
 
-          try {
-            // บันทึกประวัติลงใน Firestore
-            const savedHistory = await addMaterialHistory(historyEntry)
+          // เพิ่มประวัติใน local state
+          const updatedHistory = [savedHistory, ...materialHistory]
+          setMaterialHistory(updatedHistory)
+          setFilteredMaterialHistory(updatedHistory)
+        } catch (historyError) {
+          console.error("Error adding material history:", historyError)
+          // ไม่หยุดการลบแม้ว่าประวัติจะบันทึกไม่สำเร็จ
+        }
 
-            // เพิ่มประวัติใน local state
-            const updatedHistory = [savedHistory, ...materialHistory]
-            setMaterialHistory(updatedHistory)
-            setFilteredMaterialHistory(updatedHistory)
-          } catch (historyError) {
-            console.error("Error adding material history:", historyError)
-            // ไม่หยุดการลบแม้ว่าประวัติจะบันทึกไม่สำเร็จ
-          }
+        try {
+          // ลบข้อมูลจาก Firestore
+          await deleteMaterial(deletingMaterial.id)
 
-          try {
-            // ลบข้อมูลจาก Firestore
-            await deleteMaterial(selectedMaterialId)
+          // ลบข้อมูลจาก local state
+          setMaterials(materials.filter((material) => material.id !== deletingMaterial.id))
+          console.log("Material deleted successfully")
 
-            // ลบข้อมูลจาก local state
-            setMaterials(materials.filter((material) => material.id !== selectedMaterialId))
-            console.log("Material deleted successfully")
-
-            // ปิด modal
-            setIsDeleteModalOpen(false)
-            setSelectedMaterialId(null)
-            setError(null) // ล้างข้อผิดพลาดเก่า
-          } catch (deleteError) {
-            console.error("Error deleting material:", deleteError)
-            setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
-          }
-        } else {
-          setError("ไม่พบข้อมูลวัตถุดิบที่ต้องการลบ")
+          // ปิด modal
+          setIsDeleteModalOpen(false)
+          setDeletingMaterial(null)
+          setError(null) // ล้างข้อผิดพลาดเก่า
+        } catch (deleteError) {
+          console.error("Error deleting material:", deleteError)
+          setError("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
         }
       } catch (error) {
         console.error("Error in delete process:", error)
@@ -381,15 +429,7 @@ export default function MaterialsManagement() {
       <Sidebar isOpen={isSidebarOpen} activePage="ข้อมูลวัตถุดิบ" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
-          <button
-            onClick={toggleSidebar}
-            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-xl font-semibold">ข้อมูลวัตถุดิบ</h1>
-        </header>
+        <MaterialsHeader toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
         <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-4">
           {error && (
@@ -520,7 +560,7 @@ export default function MaterialsManagement() {
                 <div className="flex items-center space-x-2">
                   <h2 className="text-xl font-semibold bg-yellow-100 p-2 rounded-md">ประวัติการจัดการวัตถุดิบ</h2>
                   <button
-                    onClick={toggleHistoryFilter}
+                    onClick={() => setIsHistoryFilterOpen(!isHistoryFilterOpen)}
                     className={`p-2 rounded-md flex items-center ${
                       isHistoryFilterOpen ? 'bg-yellow-200' : 'bg-yellow-100 hover:bg-yellow-200'
                     }`}
@@ -664,7 +704,7 @@ export default function MaterialsManagement() {
         </main>
       </div>
 
-      <AddMaterialModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={handleSaveMaterial} />
+      <AddMaterialModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSave={handleSaveMaterial} />
       <DeleteMaterialModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}

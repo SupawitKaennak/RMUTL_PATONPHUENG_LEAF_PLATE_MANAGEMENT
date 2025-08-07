@@ -43,9 +43,33 @@ export interface Transaction {
   notes: string
 }
 
+export interface User {
+  id: string
+  username: string
+  email: string
+  fullName: string
+  createdAt: string
+  updatedAt: string
+  lastLogin?: string
+}
+
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T
   message?: string
   error?: string
+}
+
+// Extend Express Request interface
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string
+        username: string
+        email: string
+        fullName: string
+      }
+    }
+  }
 }

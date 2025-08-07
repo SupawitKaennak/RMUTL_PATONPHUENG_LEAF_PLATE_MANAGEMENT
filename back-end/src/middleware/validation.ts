@@ -66,3 +66,37 @@ export const validateOrder = (req: Request, res: Response, next: NextFunction) =
   }
   next()
 }
+
+export const validateRegistration = (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    username: Joi.string().required().min(3).max(30).alphanum(),
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(6).max(100),
+    fullName: Joi.string().required().min(2).max(100),
+  })
+
+  const { error } = schema.validate(req.body)
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details[0].message,
+    })
+  }
+  next()
+}
+
+export const validateLogin = (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    username: Joi.string().required(),
+    password: Joi.string().required(),
+  })
+
+  const { error } = schema.validate(req.body)
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details[0].message,
+    })
+  }
+  next()
+}

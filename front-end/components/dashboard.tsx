@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useEffect, memo } from "react"
-import { Menu, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, PieChart } from "lucide-react"
+import { Menu, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, PieChart, LogOut, User } from "lucide-react"
 import Sidebar from "./sidebar"
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/context/auth-context"
 import type { Transaction } from "@/types/transaction"
 import type { Order } from "@/types/order"
 import type { Material } from "@/types/material"
@@ -41,17 +43,39 @@ ChartJS.register(
 )
 
 // Memoized Header Component to prevent re-rendering
-const DashboardHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => (
-  <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
-    <button
-      onClick={toggleSidebar}
-      className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-    >
-      <Menu className="h-6 w-6" />
-    </button>
-    <h1 className="text-xl font-semibold">Dashboard</h1>
-  </header>
-))
+const DashboardHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
+  const { user, logout } = useAuth()
+  
+  return (
+    <header className="bg-blue-500 text-white p-4 flex items-center justify-between min-h-[56px]">
+      <div className="flex items-center">
+        <button
+          onClick={toggleSidebar}
+          className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-semibold">Dashboard</h1>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 text-sm">
+          <User className="h-4 w-4" />
+          <span>{user?.fullName || user?.username}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="text-white hover:bg-blue-600"
+        >
+          <LogOut className="h-4 w-4 mr-1" />
+          ออกจากระบบ
+        </Button>
+      </div>
+    </header>
+  )
+})
 
 DashboardHeader.displayName = 'DashboardHeader'
 
@@ -93,14 +117,16 @@ const parseThaiDate = (dateString: string): Date => {
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() + 543) // Default to current BE year
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
   const [materialHistory, setMaterialHistory] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() + 543) // Default to current BE year
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
 
+  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -113,8 +139,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // ตรวจสอบว่า user ได้ login แล้วหรือยัง
+      if (!isAuthenticated) {
+        console.log("🔒 User not authenticated, skipping dashboard data fetch")
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
+        console.log("📊 Fetching dashboard data...")
         const [transactionsData, ordersData, materialsData] = await Promise.all([
           getTransactions(),
           getOrders(),
@@ -133,16 +167,20 @@ export default function Dashboard() {
         setOrders(ordersData)
         setMaterials(materialsData)
         setMaterialHistory(materialHistoryData)
+        console.log("✅ Dashboard data fetched successfully")
       } catch (err) {
-        console.error("Error fetching dashboard data:", err)
+        console.error("❌ Error fetching dashboard data:", err)
         setError("เกิดข้อผิดพลาดในการโหลดข้อมูล")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, []) // Only run once on mount
+    // รอให้ auth loading เสร็จก่อน แล้วค่อยตรวจสอบ authentication
+    if (!authLoading) {
+      fetchData()
+    }
+  }, [isAuthenticated, authLoading]) // Dependencies updated
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
