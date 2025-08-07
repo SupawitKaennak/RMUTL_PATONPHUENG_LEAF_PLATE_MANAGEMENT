@@ -91,7 +91,7 @@ export default function RegisterPage() {
             ลงทะเบียน
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            สร้างบัญชีใหม่สำหรับระบบจัดการใบตอง RMUTL
+            สร้างบัญชีใหม่สำหรับระบบบันทึกและคำนวณต้นทุนผลิตภัณฑ์จานใบไม้
           </p>
         </div>
 
@@ -214,7 +214,7 @@ export default function RegisterPage() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-blue-500 text-white"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

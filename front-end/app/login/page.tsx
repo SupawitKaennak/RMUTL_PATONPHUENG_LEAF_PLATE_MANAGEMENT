@@ -48,7 +48,7 @@ export default function LoginPage() {
             เข้าสู่ระบบ
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            ระบบจัดการใบตอง RMUTL
+            ระบบบันทึกและคำนวณต้นทุนผลิตภัณฑ์จานใบไม้
           </p>
         </div>
 
@@ -111,7 +111,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-blue-500 text-white"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
