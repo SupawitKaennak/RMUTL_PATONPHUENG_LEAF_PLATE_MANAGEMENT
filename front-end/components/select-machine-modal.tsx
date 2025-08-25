@@ -33,8 +33,8 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
 
   // Sample machine data
   const machines: Machine[] = [
-    { id: "m1", name: "เครื่องจักรแบบใช้มือ", powerConsumption: 1.5 },
-    { id: "m2", name: "เครื่องจักรแบบอัตโนมัติ", powerConsumption: 3.2 },
+    { id: "m1", name: "เครื่องจักรแบบใช้มือ", powerConsumption: 1.2 },
+    { id: "m2", name: "เครื่องจักรแบบอัตโนมัติ", powerConsumption: 1.4 },
   ]
 
   // Convert minutes to hours with 6 decimal places
