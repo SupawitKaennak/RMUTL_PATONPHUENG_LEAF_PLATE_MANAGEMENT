@@ -201,4 +201,3 @@ npm start  # Production mode
 - ✅ Password hashing ด้วย bcrypt
 - ✅ Protected routes สำหรับหน้า dashboard
 
-## Update V1.0.1
