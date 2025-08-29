@@ -20,11 +20,11 @@ const IncomeExpenseHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void
   const { user, logout } = useAuth()
   
   return (
-    <header className="bg-blue-500 text-white p-4 flex items-center justify-between min-h-[56px]">
+            <header className="bg-[#7A5429] text-white p-4 flex items-center justify-between min-h-[56px]">
       <div className="flex items-center">
         <button
           onClick={toggleSidebar}
-          className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="block md:hidden p-1 mr-4 rounded-md hover:bg-[#7A5429] focus:outline-none focus:ring-2 focus:ring-[#7A5429]"
         >
           <Menu className="h-6 w-6" />
         </button>
@@ -40,7 +40,7 @@ const IncomeExpenseHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void
           variant="ghost"
           size="sm"
           onClick={logout}
-          className="text-white hover:bg-blue-600"
+          className="text-white hover:bg-[#7A5429]"
         >
           <LogOut className="h-4 w-4 mr-1" />
           ออกจากระบบ
@@ -265,7 +265,6 @@ export default function IncomeExpenseTracker() {
     const transaction = transactions.find((t) => t.id === id)
     if (transaction) {
       setEditingTransaction(transaction)
-      setShowAddModal(true) // Reuse modal for editing
     }
   }
 
@@ -290,7 +289,6 @@ export default function IncomeExpenseTracker() {
     const transaction = transactions.find((t) => t.id === id)
     if (transaction) {
       setDeletingTransaction(transaction)
-      setShowAddModal(true) // Reuse modal for deletion confirmation
     }
   }
 
@@ -373,7 +371,7 @@ export default function IncomeExpenseTracker() {
               {hasTransactions && (
                 <button
                   onClick={handleAddTransaction}
-                  className="bg-teal-400 hover:bg-emerald-600 text-white px-4 py-2 rounded-md"
+                  className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
                 >
                   เพิ่มรายการ
                 </button>

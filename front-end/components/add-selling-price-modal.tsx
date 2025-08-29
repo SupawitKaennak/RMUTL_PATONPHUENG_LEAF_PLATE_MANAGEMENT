@@ -61,7 +61,7 @@ export default function AddSellingPriceModal({ isOpen, onClose, onSave, order }:
             />
           </div>
           <div className="flex justify-between pt-4">
-            <Button onClick={onClose} className="bg-yellow-300 hover:bg-yellow-400 text-black px-6">
+            <Button onClick={onClose} className="bg-gray-200 hover:bg-gray-500 text-black px-6">
               ยกเลิก
             </Button>
             <Button onClick={handleSave} className="bg-teal-400 hover:bg-teal-500 text-white px-6">

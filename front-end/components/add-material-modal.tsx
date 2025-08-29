@@ -108,8 +108,8 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
     }
   }
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMaterialName(e.target.value)
+  const handleNameChange = (value: string) => {
+    setMaterialName(value)
     if (errors.materialName) {
       setErrors(prev => ({ ...prev, materialName: "" }))
     }
@@ -134,15 +134,19 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
             <Label htmlFor="material-name" className="block mb-2">
               ชื่อวัตถุดิบ <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="material-name"
-              type="text"
-              value={materialName}
-              onChange={handleNameChange}
-              placeholder="ระบุชื่อวัตถุดิบ"
-              className={`bg-white border-gray text-black ${errors.materialName ? 'border-red-500' : ''}`}
-              required
-            />
+            <Select value={materialName} onValueChange={handleNameChange}>
+              <SelectTrigger id="material-name" className={`bg-white border-gray text-black ${errors.materialName ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder="เลือกชื่อวัตถุดิบ" />
+              </SelectTrigger>
+              <SelectContent className="bg-white text-black border-gray">
+                <SelectItem value="ใบตองตึง" className="text-black focus:bg-gray-300 focus:text-black">
+                  ใบตองตึง
+                </SelectItem>
+                <SelectItem value="แป้งข้าวเหนียว" className="text-black focus:bg-gray-300 focus:text-black">
+                  แป้งข้าวเหนียว
+                </SelectItem>
+              </SelectContent>
+            </Select>
             {errors.materialName && (
               <p className="text-red-500 text-sm mt-1">{errors.materialName}</p>
             )}
@@ -162,9 +166,6 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
                 </SelectItem>
                 <SelectItem value="กรัม" className="text-black focus:bg-gray-300 focus:text-black">
                   กรัม
-                </SelectItem>
-                <SelectItem value="ถุง" className="text-black focus:bg-gray-300 focus:text-black">
-                  ถุง
                 </SelectItem>
               </SelectContent>
             </Select>

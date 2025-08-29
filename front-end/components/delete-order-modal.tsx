@@ -24,7 +24,7 @@ export default function DeleteOrderModal({ isOpen, onClose, onConfirm }: DeleteO
             <Button onClick={onConfirm} className="bg-red-400 hover:bg-red-500 text-white px-8 py-2 rounded-md">
               ลบ
             </Button>
-            <Button onClick={onClose} className="bg-yellow-300 hover:bg-yellow-400 text-black px-8 py-2 rounded-md">
+            <Button onClick={onClose} className="bg-gray-200 hover:bg-gray-500 text-black px-8 py-2 rounded-md">
               ไม่ใช่
             </Button>
           </div>
