@@ -618,10 +618,10 @@ export default function OrdersManagement() {
       <Sidebar isOpen={isSidebarOpen} activePage="ออเดอร์" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
+        <header className="bg-[#7A5429] text-white p-4 flex items-center min-h-[56px]">
           <button
             onClick={toggleSidebar}
-            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="block md:hidden p-1 mr-4 rounded-md hover:bg-[#5A3A1F] focus:outline-none focus:ring-2 focus:ring-[#7A5429]"
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -1011,7 +1011,7 @@ export default function OrdersManagement() {
             <div className="flex justify-between pt-4">
               <Button
                 onClick={() => setIsAddOrderModalOpen(false)}
-                className="bg-yellow-300 hover:bg-yellow-400 text-black px-6"
+                className="bg-gray-200 hover:bg-gray-500 text-black px-6"
               >
                 ยกเลิก
               </Button>
@@ -1058,7 +1058,7 @@ export default function OrdersManagement() {
             <div className="flex justify-between pt-4">
               <Button
                 onClick={() => setIsAddProductionModalOpen(false)}
-                className="bg-yellow-300 hover:bg-yellow-400 text-black px-6"
+                className="bg-gray-200 hover:bg-gray-500 text-black px-6"
               >
                 ยกเลิก
               </Button>

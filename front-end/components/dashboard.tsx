@@ -42,10 +42,10 @@ ChartJS.register(
 
 // Memoized Header Component to prevent re-rendering
 const DashboardHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => (
-  <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
+  <header className="bg-[#7A5429] text-white p-4 flex items-center min-h-[56px]">
     <button
       onClick={toggleSidebar}
-      className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+      className="block md:hidden p-1 mr-4 rounded-md hover:bg-[#5A3A1F] focus:outline-none focus:ring-2 focus:ring-[#7A5429]"
     >
       <Menu className="h-6 w-6" />
     </button>

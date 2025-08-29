@@ -381,10 +381,10 @@ export default function MaterialsManagement() {
       <Sidebar isOpen={isSidebarOpen} activePage="ข้อมูลวัตถุดิบ" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-blue-500 text-white p-4 flex items-center min-h-[56px]">
+        <header className="bg-[#7A5429] text-white p-4 flex items-center min-h-[56px]">
           <button
             onClick={toggleSidebar}
-            className="block md:hidden p-1 mr-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="block md:hidden p-1 mr-4 rounded-md hover:bg-[#5A3A1F] focus:outline-none focus:ring-2 focus:ring-[#7A5429]"
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -431,7 +431,7 @@ export default function MaterialsManagement() {
                 {hasMaterials && (
                   <button
                     onClick={handleAddMaterial}
-                    className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
+                    className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md flex items-center"
                   >
                     <span>เพิ่มวัตถุดิบ</span>
                   </button>
