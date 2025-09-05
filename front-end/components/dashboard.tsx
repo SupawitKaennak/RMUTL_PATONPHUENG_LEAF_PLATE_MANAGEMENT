@@ -49,7 +49,7 @@ const DashboardHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) 
     >
       <Menu className="h-6 w-6" />
     </button>
-    <h1 className="text-xl font-semibold">Dashboard</h1>
+    <h1 className="text-xl font-semibold">หน้าหลัก</h1>
   </header>
 ))
 
