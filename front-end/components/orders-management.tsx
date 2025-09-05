@@ -178,8 +178,7 @@ export default function OrdersManagement() {
         order.product.toLowerCase().includes(searchTerm) ||
         order.status.toLowerCase().includes(searchTerm) ||
         order.orderedQuantity.toLowerCase().includes(searchTerm) ||
-        order.remainingQuantity.toLowerCase().includes(searchTerm) ||
-        order.qcQuantity.toLowerCase().includes(searchTerm)
+        order.remainingQuantity.toLowerCase().includes(searchTerm)
       )
     }
 
@@ -303,7 +302,6 @@ export default function OrdersManagement() {
         product: newOrderProduct,
         orderedQuantity: `${newOrderQuantity} จาน`,
         remainingQuantity: "",
-        qcQuantity: "",
         electricityCost: 0,
         materialCost: 0,
         totalCost: 0,
@@ -817,9 +815,6 @@ export default function OrdersManagement() {
                             จำนวนที่ผลิต
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            จำนวน QC
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             ค่าไฟการผลิต
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -858,7 +853,6 @@ export default function OrdersManagement() {
                                 </button>
                               )}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.qcQuantity}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {order.electricityCost > 0 ? (
                                 <span className="text-gray-700">{order.electricityCost.toFixed(6)} บาท</span>

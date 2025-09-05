@@ -23,7 +23,6 @@ export interface Order {
   product: string
   orderedQuantity: string
   remainingQuantity: string
-  qcQuantity: string
   electricityCost: number
   materialCost: number
   totalCost: number

@@ -48,7 +48,6 @@ export const validateOrder = (req: Request, res: Response, next: NextFunction) =
     product: Joi.string().required().min(1).max(100),
     orderedQuantity: Joi.string().required().min(1).max(50),
     remainingQuantity: Joi.string().allow("").optional(),
-    qcQuantity: Joi.string().allow("").optional(),
     electricityCost: Joi.number().min(0).optional(),
     materialCost: Joi.number().min(0).optional(),
     totalCost: Joi.number().min(0).optional(),
