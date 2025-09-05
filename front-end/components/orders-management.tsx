@@ -345,7 +345,6 @@ export default function OrdersManagement() {
         product: newOrderProduct,
         orderedQuantity: `${newOrderQuantity} จาน`,
         remainingQuantity: "",
-        qcQuantity: "",
         electricityCost: 0,
         materialCost: 0,
         totalCost: 0,

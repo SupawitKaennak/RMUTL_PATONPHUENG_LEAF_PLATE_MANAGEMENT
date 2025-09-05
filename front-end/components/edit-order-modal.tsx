@@ -210,20 +210,6 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
             {/* Right Column */}
             <div className="space-y-4">
               <div>
-                <Label htmlFor="edit-qc-quantity" className="block mb-2 text-sm">
-                  จำนวนQC
-                </Label>
-                <Input
-                  id="edit-qc-quantity"
-                  type="text"
-                  value={order.qcQuantity}
-                  disabled
-                  className="bg-gray-100"
-                  placeholder="กรอกจำนวนที่ผ่านจาก QC"
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="edit-electricity-cost" className="block mb-2 text-sm">
                   ค่าไฟการผลิต
                 </Label>

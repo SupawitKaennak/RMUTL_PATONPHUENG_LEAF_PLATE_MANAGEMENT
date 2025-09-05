@@ -9,7 +9,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, activePage = "รายรับ - รายจ่าย", onClose }: SidebarProps) {
   const menuItems = [
-    { name: "Dashboard", href: "/" },
+    { name: "หน้าหลัก", href: "/" },
     { name: "รายรับ - รายจ่าย", href: "/income-expense" },
     { name: "ข้อมูลวัตถุดิบ", href: "/materials" },
     { name: "ออเดอร์", href: "/orders" },
