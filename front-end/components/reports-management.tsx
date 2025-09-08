@@ -570,7 +570,7 @@ export default function ReportsManagement() {
                   }`}
                 >
                   <BarChart3 className="h-4 w-4 inline mr-2" />
-                  รายงานคลังสินค้า
+                  รายงานคลังวัตถุดิบ
                 </button>
               </div>
             </div>
@@ -762,7 +762,7 @@ export default function ReportsManagement() {
             {selectedReport === "inventory" && (
               <div className="space-y-6">
                 <Card className="p-4">
-                  <h3 className="text-lg font-semibold mb-4">รายงานคลังสินค้า</h3>
+                  <h3 className="text-lg font-semibold mb-4">รายงานคลังวัตถุดิบ</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                       <thead>
