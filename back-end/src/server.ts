@@ -2,25 +2,7 @@ import express from "express"
 import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
-import dotenv from "dotenv"
-import path from "path"
-import fs from "fs"
-
-// ตรวจสอบและโหลด environment variables
-const envPath = path.resolve(process.cwd(), ".env")
-const envLocalPath = path.resolve(process.cwd(), ".env.local")
-
-// ลองโหลด .env.local ก่อน ถ้าไม่มีให้ใช้ .env
-if (fs.existsSync(envLocalPath)) {
-  dotenv.config({ path: envLocalPath })
-  console.log("📁 Using .env.local configuration")
-} else if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath })
-  console.log("📁 Using .env configuration")
-} else {
-  console.warn("⚠️  No .env or .env.local file found. Using system environment variables.")
-  dotenv.config() // โหลดจาก system environment variables
-}
+import { env } from "./config/env"
 
 // Import routes
 import authRouter from "./routes/auth"
@@ -34,16 +16,15 @@ import { errorHandler } from "./middleware/error-handler"
 import { notFound } from "./middleware/not-found"
 
 const app = express()
-const PORT = process.env.PORT || 8000
+const PORT = env.PORT
 
 // Security middleware
 app.use(helmet())
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:3000", "http://127.0.0.1:3000"]
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: env.ALLOWED_ORIGINS,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -51,29 +32,46 @@ app.use(
 )
 
 // Rate limiting configurations
-// This helps prevent DDoS attacks by limiting the number of requests from each IP
+// Different limits for development and production
+const isDevelopment = env.NODE_ENV === 'development'
+
 const generalLimiter = rateLimit({
-  windowMs: Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"), // 15 minutes (900,000ms)
-  max: Number.parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"), // limit each IP to 1000 requests per windowMs
+  windowMs: Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || (isDevelopment ? "30000" : "60000")), // 30s dev, 1min prod
+  max: Number.parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || (isDevelopment ? "200" : "100")), // 200 dev, 100 prod
   message: {
     error: "Too many requests from this IP, please try again later.",
     retryAfter: "Please wait a few minutes before trying again.",
     limit: "Rate limit exceeded"
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
   // Skip rate limiting for health check endpoint
   skip: (req) => req.path === '/health',
+  // More lenient in development
+  skipSuccessfulRequests: isDevelopment,
 })
 
 // Stricter rate limiting for authentication endpoints to prevent brute force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs for auth endpoints (login/register)
+  max: isDevelopment ? 50 : 20, // More lenient in development
   message: {
     error: "Too many authentication attempts, please try again later.",
     retryAfter: "Please wait 15 minutes before trying again.",
     limit: "Authentication rate limit exceeded"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+// Very lenient limiter for development
+const devLimiter = rateLimit({
+  windowMs: 10000, // 10 seconds
+  max: 1000, // Very high limit for development
+  message: {
+    error: "Development rate limit exceeded (this should rarely happen)",
+    retryAfter: "Please wait 10 seconds before trying again.",
+    limit: "Development rate limit exceeded"
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -93,11 +91,21 @@ app.get("/health", (req, res) => {
 })
 
 // Apply rate limiting to specific routes
-app.use("/api/auth", authLimiter) // Stricter for auth endpoints
-app.use("/api/materials", generalLimiter)
-app.use("/api/material-history", generalLimiter)
-app.use("/api/orders", generalLimiter)
-app.use("/api/transactions", generalLimiter)
+if (isDevelopment) {
+  // Use very lenient rate limiting in development
+  app.use("/api/auth", authLimiter) // Still keep auth protection
+  app.use("/api/materials", devLimiter)
+  app.use("/api/material-history", devLimiter)
+  app.use("/api/orders", devLimiter)
+  app.use("/api/transactions", devLimiter)
+} else {
+  // Use normal rate limiting in production
+  app.use("/api/auth", authLimiter)
+  app.use("/api/materials", generalLimiter)
+  app.use("/api/material-history", generalLimiter)
+  app.use("/api/orders", generalLimiter)
+  app.use("/api/transactions", generalLimiter)
+}
 
 // API routes
 app.use("/api/auth", authRouter)
@@ -113,9 +121,17 @@ app.use(errorHandler)
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`)
+  console.log(`🌍 Environment: ${env.NODE_ENV}`)
+  console.log(`🔒 JWT Secret configured: ${env.JWT_SECRET ? 'Yes' : 'No'}`)
+  console.log(`🔐 JWT Expires In: ${env.JWT_EXPIRES_IN}`)
+  console.log(`🌐 CORS Origins: ${env.ALLOWED_ORIGINS.join(', ')}`)
+  console.log(`⚡ Rate Limiting: ${isDevelopment ? 'Development Mode (Very Lenient)' : 'Production Mode (Standard)'}`)
+  if (isDevelopment) {
+    console.log(`📊 Dev Rate Limit: 1000 requests per 10 seconds`)
+  } else {
+    console.log(`📊 Prod Rate Limit: ${process.env.RATE_LIMIT_MAX_REQUESTS || '100'} requests per ${process.env.RATE_LIMIT_WINDOW_MS || '60000'}ms`)
+  }
   console.log(`🔗 Health check: http://localhost:${PORT}/health`)
-  //console.log(`📁 Using config file: .env.local`)
 })
 
 export default app

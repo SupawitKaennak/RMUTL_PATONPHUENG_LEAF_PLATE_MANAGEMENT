@@ -323,6 +323,12 @@ export default function OrdersManagement() {
   const handleSaveOrder = async () => {
     if (!newOrderProduct || !newOrderQuantity) return
 
+    // Validate order quantity
+    if (isNaN(Number(newOrderQuantity)) || Number(newOrderQuantity) < 0) {
+      alert("กรุณาระบุจำนวนที่สั่งที่ถูกต้อง (ห้ามใส่ค่าติดลบ)")
+      return
+    }
+
     try {
       // Use current date if date field is empty
       const orderDate = newOrderDate || getCurrentThaiDate()
@@ -497,8 +503,8 @@ export default function OrdersManagement() {
 
   const handleProductionQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    // Only allow numbers and empty string
-    if (value === "" || /^\d*$/.test(value)) {
+    // Only allow positive numbers and empty string
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setProductionQuantity(value)
       if (productionQuantityError) {
         setProductionQuantityError("")
@@ -511,8 +517,8 @@ export default function OrdersManagement() {
       setProductionQuantityError("กรุณาระบุจำนวนที่ผลิต")
       return false
     }
-    if (isNaN(Number(productionQuantity)) || Number(productionQuantity) <= 0) {
-      setProductionQuantityError("กรุณาระบุจำนวนที่ผลิตเป็นตัวเลขที่มากกว่า 0")
+    if (isNaN(Number(productionQuantity)) || Number(productionQuantity) < 0) {
+      setProductionQuantityError("กรุณาระบุจำนวนที่ผลิตเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0 (ห้ามใส่ค่าติดลบ)")
       return false
     }
     return true
@@ -1036,7 +1042,13 @@ export default function OrdersManagement() {
                     id="order-quantity"
                     type="text"
                     value={newOrderQuantity}
-                    onChange={(e) => setNewOrderQuantity(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      // Only allow positive numbers and empty string
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setNewOrderQuantity(value)
+                      }
+                    }}
                     className="flex-1"
                     placeholder="ระบุจำนวน"
                   />
@@ -1095,7 +1107,7 @@ export default function OrdersManagement() {
             <div className="flex justify-between pt-4">
               <Button
                 onClick={() => setIsAddProductionModalOpen(false)}
-                className="bg-yellow-300 hover:bg-yellow-400 text-black px-6"
+                className="bg-gray-200 hover:bg-gray-400 text-black px-6"
               >
                 ยกเลิก
               </Button>

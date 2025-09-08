@@ -67,8 +67,14 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
     if (!order) return
 
     // Validation: ตรวจสอบค่าก่อนอัปเดต
-    if (!order.id || !productionQuantity || isNaN(Number(productionQuantity))) {
-      alert("ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบจำนวนที่ผลิต");
+    if (!order.id || !productionQuantity || isNaN(Number(productionQuantity)) || Number(productionQuantity) < 0) {
+      alert("ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบจำนวนที่ผลิต (ห้ามใส่ค่าติดลบ)");
+      return;
+    }
+
+    // Validation: ตรวจสอบจำนวนที่สั่ง
+    if (isNaN(Number(orderedQuantity)) || Number(orderedQuantity) < 0) {
+      alert("กรุณาระบุจำนวนที่สั่งที่ถูกต้อง (ห้ามใส่ค่าติดลบ)");
       return;
     }
 
@@ -180,7 +186,13 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
                     id="edit-ordered-quantity"
                     type="text"
                     value={orderedQuantity}
-                    onChange={(e) => setOrderedQuantity(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      // Only allow positive numbers and empty string
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setOrderedQuantity(value)
+                      }
+                    }}
                     className="flex-1"
                   />
                   <span className="ml-2 text-sm">จาน</span>
@@ -196,7 +208,13 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
                     id="edit-production-quantity"
                     type="text"
                     value={productionQuantity}
-                    onChange={(e) => setProductionQuantity(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      // Only allow positive numbers and empty string
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setProductionQuantity(value)
+                      }
+                    }}
                     className="flex-1"
                   />
                   <span className="ml-2 text-sm">จาน</span>

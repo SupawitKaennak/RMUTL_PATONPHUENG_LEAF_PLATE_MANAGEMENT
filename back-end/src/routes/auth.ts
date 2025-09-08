@@ -1,18 +1,15 @@
 import express from "express"
 import { db } from "../config/firebase"
 import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
 import { validateRegistration, validateLogin } from "../middleware/validation"
+import { generateToken, verifyToken } from "../middleware/auth"
+import { env } from "../config/env"
 import type { ApiResponse } from "../types"
 
 const router = express.Router()
 
-// JWT Secret - ควรอยู่ใน environment variable
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
-const SESSION_DURATION = 30 * 60 * 1000 // 30 minutes in milliseconds
-
 // POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่
-router.post("/register", validateRegistration, async (req, res) => {
+router.post("/register", validateRegistration, async (req, res): Promise<void> => {
   try {
     const { username, email, password, fullName } = req.body
 
@@ -40,7 +37,7 @@ router.post("/register", validateRegistration, async (req, res) => {
     }
 
     // เข้ารหัส password
-    const saltRounds = 10
+    const saltRounds = env.BCRYPT_SALT_ROUNDS
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
     // สร้างผู้ใช้ใหม่
@@ -56,16 +53,12 @@ router.post("/register", validateRegistration, async (req, res) => {
     const docRef = await db.collection("users").add(userData)
 
     // สร้าง JWT token
-    const token = jwt.sign(
-      { 
-        userId: docRef.id, 
-        username, 
-        email,
-        fullName 
-      },
-      JWT_SECRET,
-      { expiresIn: "30m" }
-    )
+    const token = generateToken({
+      userId: docRef.id,
+      username,
+      email,
+      fullName
+    })
 
     const response: ApiResponse<{ token: string; user: any }> = {
       success: true,
@@ -92,7 +85,7 @@ router.post("/register", validateRegistration, async (req, res) => {
 })
 
 // POST /api/auth/login - เข้าสู่ระบบ
-router.post("/login", validateLogin, async (req, res) => {
+router.post("/login", validateLogin, async (req, res): Promise<void> => {
   try {
     const { username, password } = req.body
 
@@ -132,16 +125,12 @@ router.post("/login", validateLogin, async (req, res) => {
     }
 
     // สร้าง JWT token
-    const token = jwt.sign(
-      { 
-        userId: userDoc.id, 
-        username: userData.username, 
-        email: userData.email,
-        fullName: userData.fullName
-      },
-      JWT_SECRET,
-      { expiresIn: "30m" }
-    )
+    const token = generateToken({
+      userId: userDoc.id,
+      username: userData.username,
+      email: userData.email,
+      fullName: userData.fullName
+    })
 
     // อัปเดต lastLogin
     await userDoc.ref.update({
@@ -191,7 +180,7 @@ router.post("/logout", async (req, res) => {
 })
 
 // GET /api/auth/me - ตรวจสอบสถานะการเข้าสู่ระบบ
-router.get("/me", async (req, res) => {
+router.get("/me", async (req, res): Promise<void> => {
   try {
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -204,7 +193,7 @@ router.get("/me", async (req, res) => {
     const token = authHeader.substring(7)
     
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any
+      const decoded = verifyToken(token)
       
       // ค้นหาข้อมูลผู้ใช้จาก database
       const userDoc = await db.collection("users").doc(decoded.userId).get()

@@ -27,7 +27,7 @@ export default function AddSellingPriceModal({ isOpen, onClose, onSave, order }:
     if (!order) return
     const priceNum = parseFloat(sellingPrice)
     if (isNaN(priceNum) || priceNum < 0) {
-      alert("กรุณาระบุราคาขายที่ถูกต้อง")
+      alert("กรุณาระบุราคาขายที่ถูกต้อง (ห้ามใส่ค่าติดลบ)")
       return
     }
     const updatedOrder: Order = {
@@ -56,7 +56,13 @@ export default function AddSellingPriceModal({ isOpen, onClose, onSave, order }:
               min="0"
               step="0.01"
               value={sellingPrice}
-              onChange={(e) => setSellingPrice(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                // Only allow positive numbers and empty string
+                if (value === "" || (Number(value) >= 0 && !isNaN(Number(value)))) {
+                  setSellingPrice(value)
+                }
+              }}
               placeholder="ระบุราคาขาย"
             />
           </div>

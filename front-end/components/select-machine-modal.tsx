@@ -51,9 +51,13 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
 
   // Handle minutes input change
   const handleMinutesChange = (value: string) => {
+    const numValue = Number.parseInt(value) || 0
+    if (numValue < 0) {
+      alert("กรุณาระบุเวลาที่ถูกต้อง (ห้ามใส่ค่าติดลบ)")
+      return
+    }
     setMinutes(value)
-    const minutesNum = Number.parseInt(value) || 0
-    setHours(convertMinutesToHours(minutesNum))
+    setHours(convertMinutesToHours(numValue))
   }
 
   useEffect(() => {
@@ -138,10 +142,16 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
               <Input
                 id="minutes-input"
                 type="number"
-                min="1"
+                min="0"
                 step="1"
                 value={minutes}
-                onChange={(e) => handleMinutesChange(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  // Only allow positive numbers and empty string
+                  if (value === "" || (Number(value) >= 0 && !isNaN(Number(value)))) {
+                    handleMinutesChange(value)
+                  }
+                }}
                 className="text-center"
               />
               <p className="text-xs text-gray-500 mt-1">เทียบเท่า {hours} ชั่วโมง (1 นาที = 0.016667 ชั่วโมง)</p>
@@ -173,10 +183,16 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
             <div className="col-span-1">
               <Input
                 type="number"
-                min="0.1"
+                min="0"
                 step="0.1"
                 value={electricityRate}
-                onChange={(e) => setElectricityRate(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  // Only allow positive numbers and empty string
+                  if (value === "" || (Number(value) >= 0 && !isNaN(Number(value)))) {
+                    setElectricityRate(value)
+                  }
+                }}
                 className="text-center"
               />
               <Label className="text-xs text-center block mt-1">ค่าพลังงานไฟฟ้า เช่น 4.4</Label>
@@ -205,7 +221,7 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
           </div>
 
           <div className="flex justify-between pt-4 mt-6">
-            <Button onClick={onClose} className="bg-yellow-300 hover:bg-yellow-400 text-black px-6 w-full mr-2">
+            <Button onClick={onClose} className="bg-gray-200 hover:bg-gray-400 text-black px-6 w-full mr-2">
               ยกเลิก
             </Button>
             <Button

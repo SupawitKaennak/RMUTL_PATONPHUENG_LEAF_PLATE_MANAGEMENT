@@ -45,7 +45,7 @@ export default function EditTransactionModal({ isOpen, onClose, onSave, transact
 
   useEffect(() => {
     // Check if all required fields are filled
-    const isValid = category.trim() !== "" && description.trim() !== "" && Number.parseFloat(amount) > 0
+    const isValid = category.trim() !== "" && description.trim() !== "" && Number.parseFloat(amount) >= 0
 
     setIsFormValid(isValid)
   }, [category, description, amount])
@@ -53,13 +53,19 @@ export default function EditTransactionModal({ isOpen, onClose, onSave, transact
   const handleSave = () => {
     if (!transaction) return
 
+    const amountNum = Number.parseFloat(amount) || 0
+    if (amountNum < 0) {
+      alert("กรุณาระบุจำนวนเงินที่ถูกต้อง (ห้ามใส่ค่าติดลบ)")
+      return
+    }
+
     // Create updated transaction object with all required fields
     const updatedTransaction: Transaction = {
       id,
       date: date.trim(),
       description: description.trim(),
       category,
-      amount: Number.parseFloat(amount) || 0,
+      amount: amountNum,
       quantity: quantity.trim(),
       isIncome: transactionType === "รายรับ",
       notes: notes.trim(),
@@ -167,9 +173,17 @@ export default function EditTransactionModal({ isOpen, onClose, onSave, transact
             <Input
               id="edit-amount"
               type="number"
+              min="0"
+              step="0.01"
               placeholder="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                // Only allow positive numbers and empty string
+                if (value === "" || (Number(value) >= 0 && !isNaN(Number(value)))) {
+                  setAmount(value)
+                }
+              }}
               className="bg-white border-gray-300 text-black"
             />
           </div>

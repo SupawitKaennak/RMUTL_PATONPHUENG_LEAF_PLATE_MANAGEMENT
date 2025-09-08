@@ -500,7 +500,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-100">
-        <Sidebar isOpen={isSidebarOpen} activePage="Dashboard" onClose={() => setIsSidebarOpen(false)} />
+        <Sidebar isOpen={isSidebarOpen} activePage="หน้าหลัก" onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader toggleSidebar={toggleSidebar} />
           <div className="flex-1 flex items-center justify-center">
@@ -517,7 +517,7 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="flex h-screen bg-gray-100">
-        <Sidebar isOpen={isSidebarOpen} activePage="Dashboard" onClose={() => setIsSidebarOpen(false)} />
+        <Sidebar isOpen={isSidebarOpen} activePage="หน้าหลัก" onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader toggleSidebar={toggleSidebar} />
           <div className="flex-1 flex items-center justify-center">
@@ -538,7 +538,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} activePage="Dashboard" onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} activePage="หน้าหลัก" onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader toggleSidebar={toggleSidebar} />

@@ -10,7 +10,10 @@
     "start": "node dist/server.js",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "test:rate-limit": "node scripts/test-rate-limit.js"
+    "test:rate-limit": "node scripts/test-rate-limit.js",
+    "generate-jwt-secret": "node scripts/generate-jwt-secret.js secret",
+    "generate-env": "node scripts/generate-jwt-secret.js env",
+    "setup": "npm run generate-env && echo 'Please update Firebase configuration in .env file'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
