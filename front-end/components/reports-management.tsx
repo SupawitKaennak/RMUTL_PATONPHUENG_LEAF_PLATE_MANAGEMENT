@@ -289,40 +289,40 @@ export default function ReportsManagement() {
         materials
       }
 
-      // Create workbook and worksheet
+      // Create workbook
       const workbook = XLSX.utils.book_new()
       
-      // Create comprehensive data array similar to CSV format
-      const excelData = []
+      // 1. สร้าง Sheet สรุปภาพรวม
+      const summaryData = []
+      summaryData.push(['รายงานปี พ.ศ.', selectedYear.toString()])
+      summaryData.push(['รายงานปี ค.ศ.', (selectedYear - 543).toString()])
+      summaryData.push([]) // Empty row
+      summaryData.push(['สรุปข้อมูล'])
+      summaryData.push(['รายรับรวม', reportData.summary.totalIncome.toString()])
+      summaryData.push(['รายจ่ายรวม', reportData.summary.totalExpenses.toString()])
+      summaryData.push(['กำไรสุทธิ', reportData.summary.netProfit.toString()])
+      summaryData.push(['การผลิตรวม', reportData.summary.totalProduction.toString()])
+      summaryData.push(['จำนวนออเดอร์', reportData.summary.totalOrders.toString()])
+      summaryData.push(['จำนวนธุรกรรม', reportData.summary.totalTransactions.toString()])
+      summaryData.push(['สต็อกคงเหลือ', reportData.summary.currentStock.toString()])
+      summaryData.push(['ค่าไฟรวม', reportData.summary.totalElectricityCost.toString()])
+      summaryData.push(['ต้นทุนรวม', reportData.summary.totalCost.toString()])
+      summaryData.push(['ราคาขายรวม', reportData.summary.totalSellingPrice.toString()])
       
-      // Header information
-      excelData.push(['รายงานปี พ.ศ.', selectedYear.toString()])
-      excelData.push(['รายงานปี ค.ศ.', (selectedYear - 543).toString()])
-      excelData.push([]) // Empty row
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+      summarySheet['!cols'] = [{ wch: 20 }, { wch: 15 }]
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'สรุปภาพรวม')
       
-      // Summary section
-      excelData.push(['สรุปข้อมูล'])
-      excelData.push(['รายรับรวม', reportData.summary.totalIncome.toString()])
-      excelData.push(['รายจ่ายรวม', reportData.summary.totalExpenses.toString()])
-      excelData.push(['กำไรสุทธิ', reportData.summary.netProfit.toString()])
-      excelData.push(['การผลิตรวม', reportData.summary.totalProduction.toString()])
-      excelData.push(['จำนวนออเดอร์', reportData.summary.totalOrders.toString()])
-      excelData.push(['จำนวนธุรกรรม', reportData.summary.totalTransactions.toString()])
-      excelData.push(['สต็อกคงเหลือ', reportData.summary.currentStock.toString()])
-      excelData.push(['ค่าไฟรวม', reportData.summary.totalElectricityCost.toString()])
-      excelData.push(['ต้นทุนรวม', reportData.summary.totalCost.toString()])
-      excelData.push(['ราคาขายรวม', reportData.summary.totalSellingPrice.toString()])
-      excelData.push([]) // Empty row
-      
-      // Monthly data section
-      excelData.push(['ข้อมูลรายเดือน'])
-      excelData.push(['เดือน', 'รายรับ', 'รายจ่าย', 'กำไร', 'การผลิต', 'จำนวนออเดอร์'])
+      // 2. สร้าง Sheet ข้อมูลรายเดือน
+      const monthlySheetData = []
+      monthlySheetData.push(['ข้อมูลรายเดือน'])
+      monthlySheetData.push(['เดือน', 'รายรับ', 'รายจ่าย', 'กำไร', 'การผลิต', 'จำนวนออเดอร์'])
       const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
       months.forEach((month, index) => {
         const income = monthlyData[index].income
         const expenses = monthlyData[index].expenses
         const profit = income - expenses
-        excelData.push([
+        monthlySheetData.push([
           month,
           income.toString(),
           expenses.toString(),
@@ -331,31 +331,74 @@ export default function ReportsManagement() {
           monthlyData[index].orders.toString()
         ])
       })
-      excelData.push([]) // Empty row
       
-      // Orders data section
-      excelData.push(['ข้อมูลออเดอร์'])
-      excelData.push(['LOT', 'วันที่', 'ผลิตภัณฑ์', 'จำนวน', 'สถานะ', 'ต้นทุน', 'ราคาขาย'])
-      filteredOrders.forEach((order: any) => {
+      const monthlySheet = XLSX.utils.aoa_to_sheet(monthlySheetData)
+      monthlySheet['!cols'] = [
+        { wch: 10 }, // เดือน
+        { wch: 15 }, // รายรับ
+        { wch: 15 }, // รายจ่าย
+        { wch: 15 }, // กำไร
+        { wch: 15 }, // การผลิต
+        { wch: 15 }  // จำนวนออเดอร์
+      ]
+      XLSX.utils.book_append_sheet(workbook, monthlySheet, 'ข้อมูลรายเดือน')
+      
+      // 3. สร้าง Sheet ข้อมูลออเดอร์ (แบ่งเป็นหลาย sheet ถ้าข้อมูลมาก)
+      const ROWS_PER_SHEET = 1000 // จำนวน rows ต่อ sheet (ไม่รวม header)
+      const ordersData = filteredOrders.map((order: any) => {
         const parsedDate = parseThaiDate(order.date)
         const formattedDate = `${parsedDate.getDate()}/${parsedDate.getMonth() + 1}/${parsedDate.getFullYear()}`
-        excelData.push([
+        return [
           order.lot,
           formattedDate,
           order.product,
           order.orderedQuantity,
           order.status,
           (order.totalCost || 0).toString(),
-          (order.sellingPrice || 0).toString()
-        ])
+          (order.sellingPrice || 0).toString(),
+          (order.electricityCost || 0).toString()
+        ]
       })
-      excelData.push([]) // Empty row
       
-      // Materials data section
-      excelData.push(['ข้อมูลวัตถุดิบ'])
-      excelData.push(['ชื่อ', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย', 'มูลค่ารวม'])
+      // แบ่งข้อมูลออเดอร์เป็น chunks
+      const orderChunks = []
+      for (let i = 0; i < ordersData.length; i += ROWS_PER_SHEET) {
+        orderChunks.push(ordersData.slice(i, i + ROWS_PER_SHEET))
+      }
+      
+      // สร้าง sheet สำหรับแต่ละ chunk
+      orderChunks.forEach((chunk, index) => {
+        const ordersSheetData = []
+        ordersSheetData.push(['ข้อมูลออเดอร์'])
+        ordersSheetData.push(['LOT', 'วันที่', 'ผลิตภัณฑ์', 'จำนวน', 'สถานะ', 'ต้นทุน', 'ราคาขาย', 'ค่าไฟ'])
+        ordersSheetData.push(...chunk)
+        
+        const ordersSheet = XLSX.utils.aoa_to_sheet(ordersSheetData)
+        ordersSheet['!cols'] = [
+          { wch: 15 }, // LOT
+          { wch: 12 }, // วันที่
+          { wch: 20 }, // ผลิตภัณฑ์
+          { wch: 12 }, // จำนวน
+          { wch: 12 }, // สถานะ
+          { wch: 15 }, // ต้นทุน
+          { wch: 15 }, // ราคาขาย
+          { wch: 12 }  // ค่าไฟ
+        ]
+        
+        // ตั้งชื่อ sheet
+        const sheetName = orderChunks.length === 1 
+          ? 'ข้อมูลออเดอร์' 
+          : `ข้อมูลออเดอร์ ${index + 1}`
+        
+        XLSX.utils.book_append_sheet(workbook, ordersSheet, sheetName)
+      })
+      
+      // 4. สร้าง Sheet ข้อมูลวัตถุดิบ
+      const materialsSheetData = []
+      materialsSheetData.push(['ข้อมูลวัตถุดิบ'])
+      materialsSheetData.push(['ชื่อ', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย', 'มูลค่ารวม'])
       materials.forEach((material: any) => {
-        excelData.push([
+        materialsSheetData.push([
           material.name,
           material.quantity.toString(),
           material.unit,
@@ -363,13 +406,23 @@ export default function ReportsManagement() {
           (material.quantity * material.pricePerUnit).toString()
         ])
       })
-      excelData.push([]) // Empty row
       
-      // Transactions data section
-      excelData.push(['ข้อมูลธุรกรรม'])
-      excelData.push(['วันที่', 'รายการ', 'จำนวนเงิน', 'ประเภท', 'หมายเหตุ'])
+      const materialsSheet = XLSX.utils.aoa_to_sheet(materialsSheetData)
+      materialsSheet['!cols'] = [
+        { wch: 25 }, // ชื่อ
+        { wch: 12 }, // จำนวน
+        { wch: 10 }, // หน่วย
+        { wch: 15 }, // ราคาต่อหน่วย
+        { wch: 15 }  // มูลค่ารวม
+      ]
+      XLSX.utils.book_append_sheet(workbook, materialsSheet, 'ข้อมูลวัตถุดิบ')
+      
+      // 5. สร้าง Sheet ข้อมูลธุรกรรม
+      const transactionsSheetData = []
+      transactionsSheetData.push(['ข้อมูลธุรกรรม'])
+      transactionsSheetData.push(['วันที่', 'รายการ', 'จำนวนเงิน', 'ประเภท', 'หมายเหตุ'])
       filteredTransactions.forEach((transaction: any) => {
-        excelData.push([
+        transactionsSheetData.push([
           transaction.date,
           transaction.description,
           transaction.amount.toString(),
@@ -378,23 +431,15 @@ export default function ReportsManagement() {
         ])
       })
       
-      // Create worksheet from the comprehensive data
-      const worksheet = XLSX.utils.aoa_to_sheet(excelData)
-      
-      // Set column widths for better readability
-      const columnWidths = [
-        { wch: 15 }, // Column A
-        { wch: 20 }, // Column B
-        { wch: 20 }, // Column C
-        { wch: 15 }, // Column D
-        { wch: 15 }, // Column E
-        { wch: 15 }, // Column F
-        { wch: 15 }  // Column G
+      const transactionsSheet = XLSX.utils.aoa_to_sheet(transactionsSheetData)
+      transactionsSheet['!cols'] = [
+        { wch: 12 }, // วันที่
+        { wch: 30 }, // รายการ
+        { wch: 15 }, // จำนวนเงิน
+        { wch: 12 }, // ประเภท
+        { wch: 30 }  // หมายเหตุ
       ]
-      worksheet['!cols'] = columnWidths
-      
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงาน')
+      XLSX.utils.book_append_sheet(workbook, transactionsSheet, 'ข้อมูลธุรกรรม')
       
       // Generate Excel file
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
@@ -792,20 +837,22 @@ export default function ReportsManagement() {
             )}
 
             {/* Export Buttons */}
-            <div className="mt-8 flex justify-center space-x-4">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4 px-4">
               <Button
                 onClick={handleExportToExcel}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-3 rounded-md flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
               >
-                <Download className="h-5 w-5" />
-                ส่งออกรายงานเป็นไฟล์ CSV
+                <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">ส่งออกรายงานเป็นไฟล์ CSV</span>
+                <span className="sm:hidden">ส่งออก CSV</span>
               </Button>
               <Button
                 onClick={handleExportToExcelFile}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-3 rounded-md flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
               >
-                <Download className="h-5 w-5" />
-                ส่งออกรายงานเป็นไฟล์ Excel
+                <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">ส่งออกรายงานเป็นไฟล์ Excel</span>
+                <span className="sm:hidden">ส่งออก Excel</span>
               </Button>
             </div>
           </div>
