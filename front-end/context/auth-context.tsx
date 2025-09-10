@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { apiClient } from "@/services/api-client"
+import { authCookies } from "@/lib/cookies"
 
 interface User {
   id: string
@@ -40,10 +41,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // ตรวจสอบ token จาก localStorage เมื่อ component mount
+  // ตรวจสอบ token จาก cookies เมื่อ component mount
   useEffect(() => {
     const checkInitialAuth = async () => {
-      const storedToken = localStorage.getItem("authToken")
+      const storedToken = authCookies.getToken()
       if (storedToken) {
         console.log("🔍 Found stored token, checking auth status...")
         setToken(storedToken)
@@ -60,9 +61,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ตั้งค่า auto logout เมื่อ token หมดอายุ (30 นาที)
   useEffect(() => {
     if (token) {
-      const tokenExpiry = localStorage.getItem("tokenExpiry")
+      const tokenExpiry = authCookies.getTokenExpiry()
       if (tokenExpiry) {
-        const expiryTime = parseInt(tokenExpiry)
+        const expiryTime = tokenExpiry
         const now = Date.now()
         const timeUntilExpiry = expiryTime - now
 
@@ -109,10 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.success && response.data) {
         const { token: newToken, user: userData } = response.data as AuthResponse
         
-        // บันทึก token และ expiry time
+        // บันทึก token และ expiry time ใน cookies
         const expiryTime = Date.now() + (30 * 60 * 1000) // 30 นาที
-        localStorage.setItem("authToken", newToken)
-        localStorage.setItem("tokenExpiry", expiryTime.toString())
+        authCookies.setToken(newToken, 30 * 60) // 30 นาที
+        authCookies.setTokenExpiry(expiryTime)
         
         setToken(newToken)
         setUser(userData)
@@ -135,10 +136,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.success && response.data) {
         const { token: newToken, user: userData } = response.data as AuthResponse
         
-        // บันทึก token และ expiry time
+        // บันทึก token และ expiry time ใน cookies
         const expiryTime = Date.now() + (30 * 60 * 1000) // 30 นาที
-        localStorage.setItem("authToken", newToken)
-        localStorage.setItem("tokenExpiry", expiryTime.toString())
+        authCookies.setToken(newToken, 30 * 60) // 30 นาที
+        authCookies.setTokenExpiry(expiryTime)
         
         setToken(newToken)
         setUser(userData)
@@ -154,8 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const logout = () => {
-    localStorage.removeItem("authToken")
-    localStorage.removeItem("tokenExpiry")
+    authCookies.clearAuth()
     setToken(null)
     setUser(null)
     setIsLoading(false)
