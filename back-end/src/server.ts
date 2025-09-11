@@ -2,6 +2,7 @@ import express from "express"
 import cors from "cors"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
+import cookieParser from "cookie-parser"
 import { env } from "./config/env"
 
 // Import routes
@@ -80,6 +81,9 @@ const devLimiter = rateLimit({
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true }))
+
+// Cookie parsing middleware
+app.use(cookieParser())
 
 // Health check endpoint
 app.get("/health", (req, res) => {

@@ -20,19 +20,26 @@ declare global {
 
 /**
  * JWT Authentication Middleware
- * Verifies JWT token and adds user info to request object
+ * Verifies JWT token from cookies and adds user info to request object
  */
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization
+export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
+  // Try to get token from cookies first, then fallback to Authorization header
+  let token = req.cookies?.authToken
   
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ 
+  if (!token) {
+    const authHeader = req.headers.authorization
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7)
+    }
+  }
+  
+  if (!token) {
+    res.status(401).json({ 
       success: false, 
       error: "Unauthorized: Missing JWT token" 
     })
+    return
   }
-  
-  const token = authHeader.substring(7)
   
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as any
@@ -47,10 +54,11 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     next()
   } catch (error) {
     console.error('JWT verification error:', error)
-    return res.status(401).json({ 
+    res.status(401).json({ 
       success: false, 
       error: "Unauthorized: Invalid or expired token" 
     })
+    return
   }
 }
 
@@ -59,13 +67,19 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
  * Verifies JWT token if present, but doesn't require it
  */
 export const optionalAuthenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization
+  // Try to get token from cookies first, then fallback to Authorization header
+  let token = req.cookies?.authToken
   
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return next() // Continue without authentication
+  if (!token) {
+    const authHeader = req.headers.authorization
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7)
+    }
   }
   
-  const token = authHeader.substring(7)
+  if (!token) {
+    return next() // Continue without authentication
+  }
   
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as any
@@ -96,7 +110,7 @@ export const generateToken = (payload: {
 }): string => {
   return jwt.sign(payload, env.JWT_SECRET, { 
     expiresIn: env.JWT_EXPIRES_IN 
-  })
+  } as jwt.SignOptions)
 }
 
 /**

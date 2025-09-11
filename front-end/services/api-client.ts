@@ -1,6 +1,4 @@
 // HTTP Client for API communication
-import { authCookies } from "@/lib/cookies"
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 interface ApiResponse<T = any> {
@@ -15,15 +13,12 @@ class ApiClient {
     try {
       const url = `${API_BASE_URL}/api${endpoint}`
       
-      // Get token from cookies (except for auth endpoints)
-      const token = !endpoint.startsWith('/auth') ? authCookies.getToken() : null
-      
       const config: RequestInit = {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
+        credentials: 'include', // ส่ง cookies อัตโนมัติ
         ...options,
       }
 
@@ -180,15 +175,7 @@ class ApiClient {
   }
 
   async checkAuthStatus() {
-    const token = authCookies.getToken()
-    if (!token) {
-      throw new Error("No token found")
-    }
-    return this.request("/auth/me", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    return this.request("/auth/me")
   }
 }
 

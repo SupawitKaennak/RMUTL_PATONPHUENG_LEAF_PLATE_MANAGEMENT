@@ -9,7 +9,7 @@ import type { ApiResponse } from "../types"
 const router = express.Router()
 
 // POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่
-router.post("/register", validateRegistration, async (req, res): Promise<void> => {
+router.post("/register", validateRegistration, async (req, res) => {
   try {
     const { username, email, password, fullName } = req.body
 
@@ -19,10 +19,11 @@ router.post("/register", validateRegistration, async (req, res): Promise<void> =
       .get()
 
     if (!existingUserSnapshot.empty) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Username already exists"
       })
+      return
     }
 
     const existingEmailSnapshot = await db.collection("users")
@@ -30,10 +31,11 @@ router.post("/register", validateRegistration, async (req, res): Promise<void> =
       .get()
 
     if (!existingEmailSnapshot.empty) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Email already exists"
       })
+      return
     }
 
     // เข้ารหัส password
@@ -60,10 +62,29 @@ router.post("/register", validateRegistration, async (req, res): Promise<void> =
       fullName
     })
 
-    const response: ApiResponse<{ token: string; user: any }> = {
+    // Set HttpOnly cookie with token
+    const isProduction = process.env.NODE_ENV === 'production'
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: isProduction, // Only secure in production (HTTPS)
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/'
+    })
+
+    // Set token expiry cookie
+    const expiryTime = Date.now() + (30 * 60 * 1000) // 30 minutes
+    res.cookie('tokenExpiry', expiryTime.toString(), {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/'
+    })
+
+    const response: ApiResponse<{ user: any }> = {
       success: true,
       data: {
-        token,
         user: {
           id: docRef.id,
           username,
@@ -85,7 +106,7 @@ router.post("/register", validateRegistration, async (req, res): Promise<void> =
 })
 
 // POST /api/auth/login - เข้าสู่ระบบ
-router.post("/login", validateLogin, async (req, res): Promise<void> => {
+router.post("/login", validateLogin, async (req, res) => {
   try {
     const { username, password } = req.body
 
@@ -103,10 +124,11 @@ router.post("/login", validateLogin, async (req, res): Promise<void> => {
         .get()
       
       if (emailSnapshot.empty) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           error: "Invalid username/email or password"
         })
+        return
       }
       
       userDoc = emailSnapshot.docs[0]
@@ -118,10 +140,11 @@ router.post("/login", validateLogin, async (req, res): Promise<void> => {
     const isPasswordValid = await bcrypt.compare(password, userData.password)
     
     if (!isPasswordValid) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: "Invalid username/email or password"
       })
+      return
     }
 
     // สร้าง JWT token
@@ -137,10 +160,29 @@ router.post("/login", validateLogin, async (req, res): Promise<void> => {
       lastLogin: new Date().toISOString()
     })
 
-    const response: ApiResponse<{ token: string; user: any }> = {
+    // Set HttpOnly cookie with token
+    const isProduction = process.env.NODE_ENV === 'production'
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: isProduction, // Only secure in production (HTTPS)
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/'
+    })
+
+    // Set token expiry cookie
+    const expiryTime = Date.now() + (30 * 60 * 1000) // 30 minutes
+    res.cookie('tokenExpiry', expiryTime.toString(), {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/'
+    })
+
+    const response: ApiResponse<{ user: any }> = {
       success: true,
       data: {
-        token,
         user: {
           id: userDoc.id,
           username: userData.username,
@@ -164,8 +206,10 @@ router.post("/login", validateLogin, async (req, res): Promise<void> => {
 // POST /api/auth/logout - ออกจากระบบ
 router.post("/logout", async (req, res) => {
   try {
-    // ในระบบ JWT ไม่จำเป็นต้องทำอะไรเพิ่มเติม
-    // Client จะต้องลบ token ออกจาก localStorage
+    // Clear HttpOnly cookies
+    res.clearCookie('authToken', { path: '/' })
+    res.clearCookie('tokenExpiry', { path: '/' })
+    
     res.json({
       success: true,
       message: "Logout successful"
@@ -180,17 +224,25 @@ router.post("/logout", async (req, res) => {
 })
 
 // GET /api/auth/me - ตรวจสอบสถานะการเข้าสู่ระบบ
-router.get("/me", async (req, res): Promise<void> => {
+router.get("/me", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
+    // Try to get token from cookies first, then fallback to Authorization header
+    let token = req.cookies?.authToken
+    
+    if (!token) {
+      const authHeader = req.headers.authorization
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7)
+      }
+    }
+    
+    if (!token) {
+      res.status(401).json({
         success: false,
         error: "No token provided"
       })
+      return
     }
-
-    const token = authHeader.substring(7)
     
     try {
       const decoded = verifyToken(token)
@@ -199,10 +251,11 @@ router.get("/me", async (req, res): Promise<void> => {
       const userDoc = await db.collection("users").doc(decoded.userId).get()
       
       if (!userDoc.exists) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           error: "User not found"
         })
+        return
       }
 
       const userData = userDoc.data()
@@ -217,10 +270,11 @@ router.get("/me", async (req, res): Promise<void> => {
         }
       })
     } catch (jwtError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: "Invalid or expired token"
       })
+      return
     }
   } catch (error) {
     console.error("Error checking auth status:", error)

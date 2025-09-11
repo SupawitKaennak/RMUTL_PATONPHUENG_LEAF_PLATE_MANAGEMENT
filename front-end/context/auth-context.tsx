@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { apiClient } from "@/services/api-client"
-import { authCookies } from "@/lib/cookies"
 
 interface User {
   id: string
@@ -18,7 +17,6 @@ interface AuthResponse {
 
 interface AuthContextType {
   user: User | null
-  token: string | null
   login: (username: string, password: string) => Promise<boolean>
   register: (username: string, email: string, password: string, fullName: string) => Promise<boolean>
   logout: () => void
@@ -38,21 +36,13 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // ตรวจสอบ token จาก cookies เมื่อ component mount
+  // ตรวจสอบสถานะ authentication เมื่อ component mount
   useEffect(() => {
     const checkInitialAuth = async () => {
-      const storedToken = authCookies.getToken()
-      if (storedToken) {
-        console.log("🔍 Found stored token, checking auth status...")
-        setToken(storedToken)
-        await checkAuthStatus()
-      } else {
-        console.log("🔍 No stored token found")
-        setIsLoading(false)
-      }
+      console.log("🔍 Checking initial auth status...")
+      await checkAuthStatus()
     }
     
     checkInitialAuth()
@@ -60,27 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ตั้งค่า auto logout เมื่อ token หมดอายุ (30 นาที)
   useEffect(() => {
-    if (token) {
-      const tokenExpiry = authCookies.getTokenExpiry()
-      if (tokenExpiry) {
-        const expiryTime = tokenExpiry
-        const now = Date.now()
-        const timeUntilExpiry = expiryTime - now
+    if (user) {
+      // ตั้ง timer สำหรับ auto logout หลังจาก 30 นาที
+      const timer = setTimeout(() => {
+        console.log("⏰ Auto logout due to token expiry")
+        logout()
+      }, 30 * 60 * 1000) // 30 นาที
 
-        if (timeUntilExpiry <= 0) {
-          // Token หมดอายุแล้ว
-          logout()
-        } else {
-          // ตั้ง timer สำหรับ auto logout
-          const timer = setTimeout(() => {
-            logout()
-          }, timeUntilExpiry)
-
-          return () => clearTimeout(timer)
-        }
-      }
+      return () => clearTimeout(timer)
     }
-  }, [token])
+  }, [user])
 
   const checkAuthStatus = async () => {
     try {
@@ -108,14 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.login(username, password)
       
       if (response.success && response.data) {
-        const { token: newToken, user: userData } = response.data as AuthResponse
+        const { user: userData } = response.data as { user: User }
         
-        // บันทึก token และ expiry time ใน cookies
-        const expiryTime = Date.now() + (30 * 60 * 1000) // 30 นาที
-        authCookies.setToken(newToken, 30 * 60) // 30 นาที
-        authCookies.setTokenExpiry(expiryTime)
-        
-        setToken(newToken)
+        // Backend จะตั้งค่า HttpOnly cookies อัตโนมัติ
         setUser(userData)
         return true
       }
@@ -134,14 +108,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.register(username, email, password, fullName)
       
       if (response.success && response.data) {
-        const { token: newToken, user: userData } = response.data as AuthResponse
+        const { user: userData } = response.data as { user: User }
         
-        // บันทึก token และ expiry time ใน cookies
-        const expiryTime = Date.now() + (30 * 60 * 1000) // 30 นาที
-        authCookies.setToken(newToken, 30 * 60) // 30 นาที
-        authCookies.setTokenExpiry(expiryTime)
-        
-        setToken(newToken)
+        // Backend จะตั้งค่า HttpOnly cookies อัตโนมัติ
         setUser(userData)
         return true
       }
@@ -154,21 +123,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const logout = () => {
-    authCookies.clearAuth()
-    setToken(null)
-    setUser(null)
-    setIsLoading(false)
+  const logout = async () => {
+    try {
+      // เรียก logout API เพื่อลบ cookies ที่ backend
+      await apiClient.logout()
+    } catch (error) {
+      console.error("Logout error:", error)
+    } finally {
+      setUser(null)
+      setIsLoading(false)
+    }
   }
 
   const value: AuthContextType = {
     user,
-    token,
     login,
     register,
     logout,
     isLoading,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
