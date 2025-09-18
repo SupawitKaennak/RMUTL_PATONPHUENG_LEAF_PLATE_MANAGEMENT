@@ -9,10 +9,37 @@ interface ApiResponse<T = any> {
 }
 
 class ApiClient {
+  private ensureCsrfReady = false
+
+  private async ensureCsrfCookie(): Promise<void> {
+    if (this.ensureCsrfReady) return
+    try {
+      // If cookie already exists, skip
+      const hasCookie = typeof document !== 'undefined' && document.cookie.includes('csrfToken=')
+      if (hasCookie) {
+        this.ensureCsrfReady = true
+        return
+      }
+    } catch {}
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/csrf`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+      this.ensureCsrfReady = true
+    } catch {}
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}/api${endpoint}`
       
+      // For non-GET, make sure CSRF cookie is present
+      const method = (options.method || 'GET').toUpperCase()
+      if (method !== 'GET' && method !== 'HEAD') {
+        await this.ensureCsrfCookie()
+      }
+
       const config: RequestInit = {
         headers: {
           "Content-Type": "application/json",
@@ -22,9 +49,37 @@ class ApiClient {
         ...options,
       }
 
+      // Attach CSRF header if we have the cookie (double submit cookie pattern)
+      try {
+        const csrfCookie = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('csrfToken='))
+        if (csrfCookie) {
+          const token = csrfCookie.split('=')[1]
+          ;(config.headers as any)["X-CSRF-Token"] = token
+        }
+      } catch {}
+
       console.log(`🌐 Making API request to: ${url}`)
       
-      const response = await fetch(url, config)
+      let response = await fetch(url, config)
+      // If CSRF fails once, attempt to fetch a new CSRF cookie and retry once
+      if (response.status === 403) {
+        try {
+          await this.ensureCsrfCookie()
+          // Refresh header value in case cookie changed
+          try {
+            const csrfCookie = document.cookie
+              .split('; ')
+              .find(row => row.startsWith('csrfToken='))
+            if (csrfCookie) {
+              const token = csrfCookie.split('=')[1]
+              ;(config.headers as any)["X-CSRF-Token"] = token
+            }
+          } catch {}
+          response = await fetch(url, config)
+        } catch {}
+      }
       const data = await response.json()
 
       if (!response.ok) {

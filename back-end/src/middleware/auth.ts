@@ -36,7 +36,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   if (!token) {
     res.status(401).json({ 
       success: false, 
-      error: "Unauthorized: Missing JWT token" 
+      error: "Unauthorized: Missing authToken" 
     })
     return
   }

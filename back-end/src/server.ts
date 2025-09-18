@@ -1,9 +1,11 @@
 import express from "express"
 import cors from "cors"
+import hpp from "hpp"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
 import cookieParser from "cookie-parser"
 import { env } from "./config/env"
+import { csrfProtection } from "./middleware/csrf"
 
 // Import routes
 import authRouter from "./routes/auth"
@@ -20,15 +22,42 @@ const app = express()
 const PORT = env.PORT
 
 // Security middleware
-app.use(helmet())
+// Trust only local reverse proxies (loopback). Adjust in production to your proxy subnets.
+app.set('trust proxy', 'loopback')
+app.use(helmet({
+  // In dev, disable CSP to avoid Next dev inline/eval conflicts; in prod, set a basic CSP
+  contentSecurityPolicy: env.NODE_ENV === 'production' ? {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "font-src": ["'self'", "data:"],
+      "connect-src": ["'self'", "http://localhost:3000"],
+      "frame-ancestors": ["'none'"],
+      "base-uri": ["'self'"],
+    },
+  } : false,
+  crossOriginEmbedderPolicy: false,
+}))
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp())
 
 // CORS configuration
 app.use(
   cors({
-    origin: env.ALLOWED_ORIGINS,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true) // allow non-browser clients
+      if (env.ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+      return callback(new Error("CORS: Origin not allowed"))
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+    exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After"],
+    optionsSuccessStatus: 204,
   }),
 )
 
@@ -46,6 +75,7 @@ const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true,
   // Skip rate limiting for health check endpoint
   skip: (req) => req.path === '/health',
   // More lenient in development
@@ -63,6 +93,7 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true,
 })
 
 // Very lenient limiter for development
@@ -76,6 +107,7 @@ const devLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true,
 })
 
 // Body parsing middleware
@@ -84,6 +116,9 @@ app.use(express.urlencoded({ extended: true }))
 
 // Cookie parsing middleware
 app.use(cookieParser())
+
+// CSRF protection for state-changing routes
+app.use(csrfProtection)
 
 // Health check endpoint
 app.get("/health", (req, res) => {

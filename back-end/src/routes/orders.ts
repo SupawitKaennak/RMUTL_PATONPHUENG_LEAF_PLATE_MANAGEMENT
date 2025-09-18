@@ -1,6 +1,6 @@
 import express from "express"
 import { db } from "../config/firebase"
-import { validateOrder } from "../middleware/validation"
+import { validateOrder, validateOrderUpdate } from "../middleware/validation"
 import { authenticateToken } from "../middleware/auth"
 import type { Order, ApiResponse } from "../types"
 
@@ -91,7 +91,7 @@ router.post("/", validateOrder, async (req, res) => {
 })
 
 // PUT /api/orders/:id - อัปเดตออเดอร์
-router.put("/:id", async (req, res) => {
+router.put("/:id", validateOrderUpdate, async (req, res) => {
   try {
     const { id } = req.params
     const { remainingQuantity, machineId, electricityCost, ...otherFields } = req.body

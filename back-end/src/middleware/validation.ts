@@ -67,6 +67,55 @@ export const validateOrder = (req: Request, res: Response, next: NextFunction) =
   next()
 }
 
+export const validateTransactionUpdate = (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    date: Joi.string(),
+    description: Joi.string().min(1).max(200),
+    category: Joi.string().min(1).max(50),
+    amount: Joi.number().min(0),
+    quantity: Joi.string().allow("").max(50),
+    isIncome: Joi.boolean(),
+    notes: Joi.string().allow("").max(500),
+  }).min(1)
+
+  const { error, value } = schema.validate(req.body, { allowUnknown: true, stripUnknown: true })
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details[0].message,
+    })
+  }
+  req.body = value
+  next()
+}
+
+export const validateOrderUpdate = (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    lot: Joi.string().min(1).max(20),
+    date: Joi.string(),
+    product: Joi.string().min(1).max(100),
+    orderedQuantity: Joi.string().min(1).max(50),
+    remainingQuantity: Joi.string().allow("").optional(),
+    qcQuantity: Joi.string().allow("").optional(),
+    electricityCost: Joi.number().min(0).optional(),
+    materialCost: Joi.number().min(0).optional(),
+    totalCost: Joi.number().min(0).optional(),
+    sellingPrice: Joi.number().min(0).optional(),
+    status: Joi.string().allow("").max(50).optional(),
+    machineId: Joi.string().allow("").optional(),
+  }).min(1)
+
+  const { error, value } = schema.validate(req.body, { allowUnknown: true, stripUnknown: true })
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details[0].message,
+    })
+  }
+  req.body = value
+  next()
+}
+
 export const validateRegistration = (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
     username: Joi.string().required().min(3).max(30).alphanum(),

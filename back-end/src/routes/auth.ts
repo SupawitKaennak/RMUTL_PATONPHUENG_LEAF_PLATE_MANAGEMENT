@@ -5,8 +5,23 @@ import { validateRegistration, validateLogin } from "../middleware/validation"
 import { generateToken, verifyToken } from "../middleware/auth"
 import { env } from "../config/env"
 import type { ApiResponse } from "../types"
+import { setCsrfCookie, getCsrfCookieName } from "../middleware/csrf"
+import { logSecurityEvent } from "../middleware/logger"
+import { getClientIp } from "../utils/ip"
+
+// In-memory login attempt tracking (replace with Redis in production)
+const loginAttempts: Record<string, { count: number; until?: number }> = {}
+const MAX_ATTEMPTS = 5
+const LOCK_MS = 15 * 60 * 1000 // 15 minutes
 
 const router = express.Router()
+
+// GET /api/auth/csrf - issue CSRF cookie for the client (idempotent)
+router.get("/csrf", (req, res) => {
+  const name = getCsrfCookieName()
+  const token = setCsrfCookie(res)
+  res.json({ success: true, data: { cookie: name } })
+})
 
 // POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่
 router.post("/register", validateRegistration, async (req, res) => {
@@ -82,6 +97,9 @@ router.post("/register", validateRegistration, async (req, res) => {
       path: '/'
     })
 
+    // Issue CSRF cookie for frontend to read
+    const csrfToken = setCsrfCookie(res)
+
     const response: ApiResponse<{ user: any }> = {
       success: true,
       data: {
@@ -95,7 +113,7 @@ router.post("/register", validateRegistration, async (req, res) => {
       message: "User registered successfully"
     }
 
-    res.status(201).json(response)
+    res.status(201).json({ ...response, csrfCookie: getCsrfCookieName() })
   } catch (error) {
     console.error("Error registering user:", error)
     res.status(500).json({
@@ -109,6 +127,15 @@ router.post("/register", validateRegistration, async (req, res) => {
 router.post("/login", validateLogin, async (req, res) => {
   try {
     const { username, password } = req.body
+
+    const ip = getClientIp(req)
+    const key = `${ip}:${username}`
+    const entry = loginAttempts[key]
+    if (entry && entry.until && entry.until > Date.now()) {
+      logSecurityEvent("auth.login.locked", { ip, username })
+      res.status(429).json({ success: false, error: "Too many attempts. Try again later." })
+      return
+    }
 
     // ค้นหาผู้ใช้จาก username หรือ email
     const userSnapshot = await db.collection("users")
@@ -124,10 +151,12 @@ router.post("/login", validateLogin, async (req, res) => {
         .get()
       
       if (emailSnapshot.empty) {
-        res.status(401).json({
-          success: false,
-          error: "Invalid username/email or password"
-        })
+        loginAttempts[key] = { count: (entry?.count || 0) + 1 }
+        if (loginAttempts[key].count >= MAX_ATTEMPTS) {
+          loginAttempts[key].until = Date.now() + LOCK_MS
+        }
+        logSecurityEvent("auth.login.failure", { ip, username })
+        res.status(401).json({ success: false, error: "Invalid credentials" })
         return
       }
       
@@ -140,10 +169,12 @@ router.post("/login", validateLogin, async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, userData.password)
     
     if (!isPasswordValid) {
-      res.status(401).json({
-        success: false,
-        error: "Invalid username/email or password"
-      })
+      loginAttempts[key] = { count: (entry?.count || 0) + 1 }
+      if (loginAttempts[key].count >= MAX_ATTEMPTS) {
+        loginAttempts[key].until = Date.now() + LOCK_MS
+      }
+      logSecurityEvent("auth.login.failure", { ip, username: userData.username })
+      res.status(401).json({ success: false, error: "Invalid credentials" })
       return
     }
 
@@ -180,6 +211,9 @@ router.post("/login", validateLogin, async (req, res) => {
       path: '/'
     })
 
+    // Issue CSRF cookie for frontend to read
+    const csrfToken = setCsrfCookie(res)
+
     const response: ApiResponse<{ user: any }> = {
       success: true,
       data: {
@@ -188,12 +222,15 @@ router.post("/login", validateLogin, async (req, res) => {
           username: userData.username,
           email: userData.email,
           fullName: userData.fullName
-        }
+        },
+        clientIp: ip,
       },
       message: "Login successful"
     }
-
-    res.json(response)
+    // reset attempts on success
+    delete loginAttempts[key]
+    logSecurityEvent("auth.login.success", { ip, userId: userDoc.id })
+    res.json({ ...response, csrfCookie: getCsrfCookieName() })
   } catch (error) {
     console.error("Error logging in:", error)
     res.status(500).json({
