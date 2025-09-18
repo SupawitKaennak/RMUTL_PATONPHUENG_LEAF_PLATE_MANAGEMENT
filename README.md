@@ -1,204 +1,123 @@
-# RMUTL_PATONPHUENG_LEAF_PLATE_MANAGEMENT
+# RMUTL Leaf Plate Management
 
-ระบบจัดการใบตองสำหรับการผลิตแผ่นใบตองของมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา
+ระบบจัดการวัตถุดิบ ผลิตภัณฑ์ ออเดอร์ และรายรับ–รายจ่าย สำหรับการผลิต “จานใบตองตึง” พร้อมมาตรการความปลอดภัยตามแนวทาง OWASP
 
-## Features
+## ภาพรวมความสามารถหลัก
 
-- 🔐 **Authentication System** - ระบบเข้าสู่ระบบและลงทะเบียนด้วย JWT
-- 📦 **Material Management** - จัดการวัตถุดิบ
-- 📋 **Order Management** - จัดการคำสั่งซื้อ
-- 💰 **Income-Expense Tracking** - ติดตามรายได้และรายจ่าย
-- 📊 **Reports & Analytics** - รายงานและกราฟสถิติ
-- 🕒 **Auto Logout** - ออกจากระบบอัตโนมัติหลัง 30 นาที
-- 🛡️ **Protected Routes** - ป้องกันการเข้าถึงหน้าโดยไม่ได้รับอนุญาต
-- 👤 **User Info Display** - แสดงชื่อผู้ใช้งานและปุ่มออกจากระบบในทุกหน้า
+- 📦 วัตถุดิบ (Materials): เพิ่ม/แก้ไข/ลบ, ปรับจำนวน, บันทึกประวัติการเคลื่อนไหว
+- 📋 ออเดอร์ (Orders): เพิ่ม/แก้ไข/ลบ, คำนวณการใช้วัตถุดิบตามสูตร, อัพเดตต้นทุน
+- 💰 รายรับ–รายจ่าย (Transactions): บันทึก/แก้ไข/ลบ, สรุปผลรวม
+- 📊 รายงาน (Reports): ดูภาพรวมการผลิตและต้นทุน (หน้า UI)
+- 🔐 ผู้ใช้ (Auth): สมัครสมาชิก/เข้าสู่ระบบ/ออกจากระบบ, ป้องกันหน้าที่ต้องล็อกอิน
 
-## Security Features
+## ความปลอดภัยที่มีอยู่ (สรุป)
 
-- 🔐 JWT Authentication (30 นาที)
-- 🔒 Password Hashing (bcrypt)
-- 🛡️ CORS Protection
-- ⏱️ Rate Limiting
-- 🕒 Auto Logout (30 minutes)
-- 🔑 Bearer Token Validation
-- 🚫 Protected Routes - ทุกหน้าต้อง login ก่อนเข้าถึง
-- 🔄 Auto Redirect - redirect ไปหน้า login เมื่อไม่ได้ authenticate
+- JWT ในคุกกี้ HttpOnly + อายุ 30 นาที (auto logout เมื่อหมดอายุ)
+- CSRF ป้องกันแบบ Double-Submit Cookie (`csrfToken` + header `X-CSRF-Token`)
+- Helmet + Security headers (CSP, X-Frame-Options, Referrer-Policy, ฯลฯ)
+- HPP (HTTP Parameter Pollution) และ CORS แบบ whitelist
+- Rate limiting รวมถึงสาขาเข้มงวดสำหรับ `/api/auth/*` และ lockout ชั่วคราวเมื่อเดารหัสผ่านผิดซ้ำ
+- Validation ด้วย Joi ในทุก endpoint สำคัญ (รวม PUT/DELETE)
+- Audit log เหตุการณ์สำคัญ (login success/failure/locked)
 
-## Installation
+## โครงสร้างโปรเจกต์
 
-### Backend Setup
+- `back-end/` Express + Firebase Admin (REST API)
+- `front-end/` Next.js + Tailwind + shadcn/ui (UI)
 
-1. ติดตั้ง dependencies:
+## ติดตั้งและรัน
+
+### Backend
+1) ติดตั้งแพ็กเกจ
 ```bash
 cd back-end
 npm install
 ```
-
-2. สร้างไฟล์ `.env` ในโฟลเดอร์ `back-end`:
-```bash
-# Firebase Configuration
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_PRIVATE_KEY_ID=your-private-key-id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour Private Key Here\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
-FIREBASE_CLIENT_ID=your-client-id
-FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
-FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
-FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
-FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project.iam.gserviceaccount.com
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# Server Configuration
+2) ตั้งค่าไฟล์ `.env` (ดูตัวอย่างใน `back-end/env.example`)
+ค่าที่สำคัญ:
+```
+JWT_SECRET=your-long-random-secret
+ALLOWED_ORIGINS=http://localhost:3000
 PORT=8000
 NODE_ENV=development
-
-# CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=300000
-RATE_LIMIT_MAX_REQUESTS=500
+# Firebase service account ...
 ```
-
-3. รัน server:
+3) รัน
 ```bash
 npm run dev
 ```
 
-### Frontend Setup
-
-1. ติดตั้ง dependencies:
+### Frontend
+1) ติดตั้งแพ็กเกจ
 ```bash
 cd front-end
 npm install
 ```
-
-2. สร้างไฟล์ `.env.local` ในโฟลเดอร์ `front-end`:
-```bash
-# API Configuration
+2) ตั้งค่า `.env.local`
+```
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
-
-3. รัน development server:
+3) รัน
 ```bash
 npm run dev
 ```
 
-## Environment Variables
-
-### Backend (.env)
-- `FIREBASE_PROJECT_ID` - Firebase Project ID
-- `FIREBASE_PRIVATE_KEY` - Firebase Private Key
-- `FIREBASE_CLIENT_EMAIL` - Firebase Client Email
-- `JWT_SECRET` - JWT Secret Key (สำคัญมาก - เปลี่ยนใน production)
-- `PORT` - Server Port (default: 8000)
-- `ALLOWED_ORIGINS` - CORS Allowed Origins
-
-### Frontend (.env.local)
-- `NEXT_PUBLIC_API_URL` - Backend API URL (default: http://localhost:8000)
-
-## API Endpoints
+## API สำคัญ
 
 ### Authentication
-- `POST /api/auth/register` - ลงทะเบียนผู้ใช้ใหม่
-- `POST /api/auth/login` - เข้าสู่ระบบ
-- `POST /api/auth/logout` - ออกจากระบบ
-- `GET /api/auth/me` - ตรวจสอบสถานะการเข้าสู่ระบบ
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/auth/csrf` ออกคุกกี้ `csrfToken`
 
 ### Materials
-- `GET /api/materials` - ดึงข้อมูลวัตถุดิบทั้งหมด
-- `POST /api/materials` - เพิ่มวัตถุดิบใหม่
-- `PUT /api/materials/:id` - อัปเดตวัตถุดิบ
-- `DELETE /api/materials/:id` - ลบวัตถุดิบ
+- `GET /api/materials`
+- `POST /api/materials`
+- `PUT /api/materials/:id`
+- `PATCH /api/materials/update-unit`
+- `POST /api/materials/quantity`
+- `DELETE /api/materials/:id`
 
 ### Orders
-- `GET /api/orders` - ดึงข้อมูลคำสั่งซื้อทั้งหมด
-- `POST /api/orders` - เพิ่มคำสั่งซื้อใหม่
-- `PUT /api/orders/:id` - อัปเดตคำสั่งซื้อ
-- `DELETE /api/orders/:id` - ลบคำสั่งซื้อ
+- `GET /api/orders`
+- `POST /api/orders`
+- `PUT /api/orders/:id`
+- `POST /api/orders/production`
+- `DELETE /api/orders/:id`
 
 ### Transactions
-- `GET /api/transactions` - ดึงข้อมูลธุรกรรมทั้งหมด
-- `POST /api/transactions` - เพิ่มธุรกรรมใหม่
-- `PUT /api/transactions/:id` - อัปเดตธุรกรรม
-- `DELETE /api/transactions/:id` - ลบธุรกรรม
+- `GET /api/transactions`
+- `POST /api/transactions`
+- `PUT /api/transactions/:id`
+- `DELETE /api/transactions/:id`
 
-## Security Features
+## หมายเหตุด้านความปลอดภัย (ใช้งานจริง)
 
-- 🔐 JWT Authentication (30 นาที)
-- 🔒 Password Hashing (bcrypt)
-- 🛡️ CORS Protection
-- ⏱️ Rate Limiting
-- 🕒 Auto Logout (30 minutes)
-- 🔑 Bearer Token Validation
-- 🚫 Protected Routes - ทุกหน้าต้อง login ก่อนเข้าถึง
-- 🔄 Auto Redirect - redirect ไปหน้า login เมื่อไม่ได้ authenticate
+- เปิดใช้งาน HTTPS และตั้งค่า `secure: true` ให้คุกกี้ทุกตัวใน production
+- ปรับ `ALLOWED_ORIGINS` เป็นโดเมนจริง ไม่ใช้ `*`
+- พิจารณาใช้ Redis สำหรับเก็บ lockout แทน in‑memory
+- ตรวจทาน/ปรับ CSP ให้ตรงกับโดเมนและทรัพยากรจริงในโปรดักชัน
 
-## User Interface Features
+## สคริปต์พัฒนา
 
-- 👤 **User Info Display** - แสดงชื่อผู้ใช้งานใน header ทุกหน้า
-- 🚪 **Logout Button** - ปุ่มออกจากระบบใน header ทุกหน้า
-- 📱 **Responsive Design** - รองรับการใช้งานบนมือถือ
-- 🎨 **Modern UI** - ใช้ Tailwind CSS และ Radix UI
-- 🔄 **Loading States** - แสดงสถานะการโหลดข้อมูล
-- ⚠️ **Error Handling** - จัดการข้อผิดพลาดอย่างเหมาะสม
-
-## Troubleshooting
-
-### Frontend ไม่สามารถเชื่อมต่อ Backend ได้
-1. ตรวจสอบว่า backend รันที่ port 8000
-2. ตรวจสอบ CORS configuration ใน backend
-3. ตรวจสอบ `NEXT_PUBLIC_API_URL` ใน frontend
-
-### JWT Token ไม่ทำงาน
-1. ตรวจสอบ `JWT_SECRET` ใน backend
-2. ตรวจสอบว่า token หมดอายุหรือไม่ (30 นาที)
-3. ตรวจสอบ Authorization header
-
-### Firebase Connection Error
-1. ตรวจสอบ Firebase credentials ใน `.env`
-2. ตรวจสอบ Firebase project settings
-3. ตรวจสอบ service account permissions
-
-### หน้าไม่ redirect ไป login
-1. ตรวจสอบ ProtectedRoute component
-2. ตรวจสอบ auth context
-3. ตรวจสอบ localStorage token
-
-## Development
-
-### Backend Development
+Backend
 ```bash
-cd back-end
-npm run dev  # Development mode with hot reload
-npm run build  # Build for production
-npm start  # Production mode
+npm run dev    # โหมดพัฒนา
+npm run build  # คอมไพล์ TypeScript
+npm start      # รันโปรดักชันจาก dist/
 ```
 
-### Frontend Development
+Frontend
 ```bash
-cd front-end
-npm run dev  # Development mode
-npm run build  # Build for production
-npm start  # Production mode
+npm run dev
+npm run build
+npm start
 ```
 
-## Recent Updates
+## อัปเดตล่าสุด (ย่อ)
 
-### V1.0.2 - Security Improvements
-- ✅ แก้ไขช่องโหว่ security - เพิ่ม ProtectedRoute ให้ทุกหน้า
-- ✅ เพิ่มชื่อผู้ใช้งานและปุ่มออกจากระบบใน header ทุกหน้า
-- ✅ ปรับปรุง JWT authentication flow
-- ✅ เพิ่ม auto redirect เมื่อไม่ได้ authenticate
-- ✅ ปรับปรุง error handling และ loading states
-
-### V1.0.1 - Authentication System
-- ✅ เพิ่มระบบ register และ login
-- ✅ JWT token authentication (30 นาที)
-- ✅ Auto logout เมื่อ token หมดอายุ
-- ✅ Password hashing ด้วย bcrypt
-- ✅ Protected routes สำหรับหน้า dashboard
-
-## Update V1.0.1
+- เพิ่ม HPP, CORS แบบ whitelist, Helmet, Security headers
+- เพิ่ม CSRF double submit + bootstrap endpoint
+- เพิ่ม Rate limit + Login lockout + Audit log
+- ขยาย Joi validation สำหรับ PUT/DELETE
