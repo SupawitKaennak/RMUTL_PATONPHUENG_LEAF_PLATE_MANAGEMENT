@@ -8,6 +8,7 @@ interface User {
   username: string
   email: string
   fullName: string
+  role: 'admin' | 'user'
 }
 
 interface AuthResponse {
@@ -22,6 +23,7 @@ interface AuthContextType {
   logout: () => void
   isLoading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -142,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     isLoading,
     isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

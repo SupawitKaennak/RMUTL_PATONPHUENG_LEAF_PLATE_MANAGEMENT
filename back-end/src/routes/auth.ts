@@ -57,12 +57,14 @@ router.post("/register", validateRegistration, async (req, res) => {
     const saltRounds = env.BCRYPT_SALT_ROUNDS
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
-    // สร้างผู้ใช้ใหม่
+    // สร้างผู้ใช้ใหม่ (default role เป็น 'user')
     const userData = {
       username,
       email,
       password: hashedPassword,
       fullName,
+      role: 'user',
+      isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -74,7 +76,8 @@ router.post("/register", validateRegistration, async (req, res) => {
       userId: docRef.id,
       username,
       email,
-      fullName
+      fullName,
+      role: 'user'
     })
 
     // Set HttpOnly cookie with token
@@ -107,7 +110,8 @@ router.post("/register", validateRegistration, async (req, res) => {
           id: docRef.id,
           username,
           email,
-          fullName
+          fullName,
+          role: 'user'
         }
       },
       message: "User registered successfully"
@@ -183,7 +187,8 @@ router.post("/login", validateLogin, async (req, res) => {
       userId: userDoc.id,
       username: userData.username,
       email: userData.email,
-      fullName: userData.fullName
+      fullName: userData.fullName,
+      role: userData.role || 'user'
     })
 
     // อัปเดต lastLogin
@@ -214,14 +219,15 @@ router.post("/login", validateLogin, async (req, res) => {
     // Issue CSRF cookie for frontend to read
     const csrfToken = setCsrfCookie(res)
 
-    const response: ApiResponse<{ user: any }> = {
+    const response: ApiResponse<{ user: any; clientIp?: string }> = {
       success: true,
       data: {
         user: {
           id: userDoc.id,
           username: userData.username,
           email: userData.email,
-          fullName: userData.fullName
+          fullName: userData.fullName,
+          role: userData.role || 'user'
         },
         clientIp: ip,
       },
@@ -303,7 +309,8 @@ router.get("/me", async (req, res) => {
           id: userDoc.id,
           username: userData?.username,
           email: userData?.email,
-          fullName: userData?.fullName
+          fullName: userData?.fullName,
+          role: userData?.role || 'user'
         }
       })
     } catch (jwtError) {

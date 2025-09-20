@@ -11,6 +11,7 @@ declare global {
         username: string
         email: string
         fullName: string
+        role: 'admin' | 'user'
         iat?: number
         exp?: number
       }
@@ -48,6 +49,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
       username: decoded.username,
       email: decoded.email,
       fullName: decoded.fullName,
+      role: decoded.role || 'user',
       iat: decoded.iat,
       exp: decoded.exp
     }
@@ -88,6 +90,7 @@ export const optionalAuthenticateToken = (req: Request, res: Response, next: Nex
       username: decoded.username,
       email: decoded.email,
       fullName: decoded.fullName,
+      role: decoded.role || 'user',
       iat: decoded.iat,
       exp: decoded.exp
     }
@@ -107,6 +110,7 @@ export const generateToken = (payload: {
   username: string
   email: string
   fullName: string
+  role?: 'admin' | 'user'
 }): string => {
   return jwt.sign(payload, env.JWT_SECRET, { 
     expiresIn: env.JWT_EXPIRES_IN 
@@ -125,4 +129,28 @@ export const verifyToken = (token: string): any => {
  */
 export const decodeToken = (token: string): any => {
   return jwt.decode(token)
+}
+
+/**
+ * Admin Role Middleware
+ * Requires user to be authenticated and have admin role
+ */
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  if (!req.user) {
+    res.status(401).json({ 
+      success: false, 
+      error: "Unauthorized: Authentication required" 
+    })
+    return
+  }
+
+  if (req.user.role !== 'admin') {
+    res.status(403).json({ 
+      success: false, 
+      error: "Forbidden: Admin access required" 
+    })
+    return
+  }
+
+  next()
 }

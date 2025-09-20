@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/context/auth-context"
 
 interface SidebarProps {
   isOpen: boolean
@@ -8,12 +9,20 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, activePage = "รายรับ - รายจ่าย", onClose }: SidebarProps) {
+  const { isAdmin } = useAuth()
+  
   const menuItems = [
     { name: "หน้าหลัก", href: "/" },
     { name: "รายรับ - รายจ่าย", href: "/income-expense" },
     { name: "ข้อมูลวัตถุดิบ", href: "/materials" },
     { name: "ออเดอร์", href: "/orders" },
     { name: "สรุปรายงาน", href: "/reports" },
+  ]
+
+  // เพิ่มเมนู Admin สำหรับผู้ดูแลระบบ
+  const adminMenuItems = [
+    { name: "Admin Dashboard", href: "/admin" },
+    { name: "จัดการผู้ใช้", href: "/admin/users" },
   ]
 
   return (
@@ -64,6 +73,32 @@ export default function Sidebar({ isOpen, activePage = "รายรับ - ร
                   </Link>
                 </li>
               ))}
+              
+              {/* แสดงเมนู Admin สำหรับผู้ดูแลระบบ */}
+              {isAdmin && (
+                <>
+                  <li className="pt-4 mt-4 border-t border-[#8B5A2B]/60">
+                    <div className="px-4 py-2 text-xs font-semibold text-[#F4E4BC] uppercase tracking-wider">
+                      ผู้ดูแลระบบ
+                    </div>
+                  </li>
+                  {adminMenuItems.map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "block px-4 py-3 rounded-md transition-all duration-200",
+                          "hover:bg-[#8B5A2B]/80 hover:backdrop-blur-sm",
+                          "text-white drop-shadow-md",
+                          item.name === activePage && "bg-[#8B5A2B]/90 backdrop-blur-sm shadow-lg",
+                        )}
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </>
+              )}
             </ul>
           </nav>
         </div>

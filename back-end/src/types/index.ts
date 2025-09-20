@@ -48,6 +48,8 @@ export interface User {
   username: string
   email: string
   fullName: string
+  role: 'admin' | 'user'
+  isActive: boolean
   createdAt: string
   updatedAt: string
   lastLogin?: string
@@ -69,6 +71,7 @@ declare global {
         username: string
         email: string
         fullName: string
+        role: 'admin' | 'user'
       }
     }
   }

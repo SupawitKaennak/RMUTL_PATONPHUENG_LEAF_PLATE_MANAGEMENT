@@ -13,6 +13,7 @@ import materialsRouter from "./routes/materials"
 import materialHistoryRouter from "./routes/material-history"
 import ordersRouter from "./routes/orders"
 import transactionsRouter from "./routes/transactions"
+import adminRouter from "./routes/admin"
 
 // Import middleware
 import { errorHandler } from "./middleware/error-handler"
@@ -137,6 +138,7 @@ if (isDevelopment) {
   app.use("/api/material-history", devLimiter)
   app.use("/api/orders", devLimiter)
   app.use("/api/transactions", devLimiter)
+  app.use("/api/admin", devLimiter)
 } else {
   // Use normal rate limiting in production
   app.use("/api/auth", authLimiter)
@@ -144,6 +146,7 @@ if (isDevelopment) {
   app.use("/api/material-history", generalLimiter)
   app.use("/api/orders", generalLimiter)
   app.use("/api/transactions", generalLimiter)
+  app.use("/api/admin", generalLimiter)
 }
 
 // API routes
@@ -152,6 +155,7 @@ app.use("/api/materials", materialsRouter)
 app.use("/api/material-history", materialHistoryRouter)
 app.use("/api/orders", ordersRouter)
 app.use("/api/transactions", transactionsRouter)
+app.use("/api/admin", adminRouter)
 
 // Error handling middleware
 app.use(notFound)
