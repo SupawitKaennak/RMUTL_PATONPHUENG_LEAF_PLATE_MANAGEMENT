@@ -490,57 +490,74 @@ export default function AdminUserManagement() {
             </div>
 
             {/* Users Table */}
-            <Card className="p-4">
+            <Card className="p-2 md:p-4">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ชื่อผู้ใช้</TableHead>
-                      <TableHead>ชื่อเต็ม</TableHead>
-                      <TableHead>อีเมล</TableHead>
-                      <TableHead>บทบาท</TableHead>
-                      <TableHead>สถานะ</TableHead>
-                      <TableHead>วันที่สร้าง</TableHead>
-                      <TableHead>เข้าสู่ระบบล่าสุด</TableHead>
-                      <TableHead className="text-right">การจัดการ</TableHead>
+                      <TableHead className="text-xs md:text-sm">ชื่อผู้ใช้</TableHead>
+                      <TableHead className="text-xs md:text-sm hidden sm:table-cell">ชื่อเต็ม</TableHead>
+                      <TableHead className="text-xs md:text-sm">อีเมล</TableHead>
+                      <TableHead className="text-xs md:text-sm">บทบาท</TableHead>
+                      <TableHead className="text-xs md:text-sm">สถานะ</TableHead>
+                      <TableHead className="text-xs md:text-sm hidden md:table-cell">วันที่สร้าง</TableHead>
+                      <TableHead className="text-xs md:text-sm hidden lg:table-cell">เข้าสู่ระบบล่าสุด</TableHead>
+                      <TableHead className="text-right text-xs md:text-sm">การจัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
-                        <TableCell>{user.fullName}</TableCell>
-                        <TableCell>{user.email}</TableCell>
+                        <TableCell className="font-medium text-xs md:text-sm">{user.username}</TableCell>
+                        <TableCell className="text-xs md:text-sm hidden sm:table-cell">{user.fullName}</TableCell>
+                        <TableCell className="text-xs md:text-sm">{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
+                          <Badge 
+                            variant={user.role === 'admin' ? 'destructive' : 'default'}
+                            className={`text-xs px-2 py-1 whitespace-nowrap ${
+                              user.role === 'admin' 
+                                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                : 'bg-gray-600 hover:bg-gray-700 text-white'
+                            }`}
+                          >
                             {user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้'}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                          <Badge 
+                            variant={user.isActive ? 'default' : 'secondary'}
+                            className={`text-xs px-2 py-1 whitespace-nowrap ${
+                              user.isActive 
+                                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                : 'bg-gray-400 hover:bg-gray-500 text-white'
+                            }`}
+                          >
                             {user.isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatDate(user.createdAt)}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-xs md:text-sm hidden md:table-cell">{formatDate(user.createdAt)}</TableCell>
+                        <TableCell className="text-xs md:text-sm hidden lg:table-cell">
                           {user.lastLogin ? formatDate(user.lastLogin) : 'ไม่เคยเข้าสู่ระบบ'}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1 md:gap-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => openEditDialog(user)}
+                              className="h-8 w-8 md:h-9 md:w-auto px-1 md:px-3"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                              <span className="hidden md:inline ml-1">แก้ไข</span>
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => openDeleteDialog(user)}
-                              className="text-red-600 hover:text-red-700"
+                              className="h-8 w-8 md:h-9 md:w-auto px-1 md:px-3 text-red-600 hover:text-red-700"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                              <span className="hidden md:inline ml-1">ลบ</span>
                             </Button>
                           </div>
                         </TableCell>
