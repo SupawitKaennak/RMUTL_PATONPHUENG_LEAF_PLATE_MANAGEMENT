@@ -292,31 +292,51 @@ export default function ReportsManagement() {
       // Create workbook
       const workbook = XLSX.utils.book_new()
       
+      // Helper function to create formatted data with borders and styling
+      const createFormattedSheet = (data: any[][], title: string) => {
+        const sheet = XLSX.utils.aoa_to_sheet(data)
+        
+        // Set column widths
+        const maxCols = Math.max(...data.map(row => row.length))
+        sheet['!cols'] = Array(maxCols).fill(null).map(() => ({ wch: 15 }))
+        
+        // Set row heights for title and header
+        if (data.length > 0) {
+          sheet['!rows'] = [
+            { hpt: 20 }, // Title row height
+            { hpt: 18 }  // Header row height
+          ]
+        }
+        
+        return sheet
+      }
+      
       // 1. สร้าง Sheet สรุปภาพรวม
       const summaryData = []
-      summaryData.push(['รายงานปี พ.ศ.', selectedYear.toString()])
-      summaryData.push(['รายงานปี ค.ศ.', (selectedYear - 543).toString()])
-      summaryData.push([]) // Empty row
-      summaryData.push(['สรุปข้อมูล'])
-      summaryData.push(['รายรับรวม', reportData.summary.totalIncome.toString()])
-      summaryData.push(['รายจ่ายรวม', reportData.summary.totalExpenses.toString()])
-      summaryData.push(['กำไรสุทธิ', reportData.summary.netProfit.toString()])
-      summaryData.push(['การผลิตรวม', reportData.summary.totalProduction.toString()])
-      summaryData.push(['จำนวนออเดอร์', reportData.summary.totalOrders.toString()])
-      summaryData.push(['จำนวนธุรกรรม', reportData.summary.totalTransactions.toString()])
-      summaryData.push(['สต็อกคงเหลือ', reportData.summary.currentStock.toString()])
-      summaryData.push(['ค่าไฟรวม', reportData.summary.totalElectricityCost.toString()])
-      summaryData.push(['ต้นทุนรวม', reportData.summary.totalCost.toString()])
-      summaryData.push(['ราคาขายรวม', reportData.summary.totalSellingPrice.toString()])
+      summaryData.push(['📊 สรุปภาพรวม - รายงานปี พ.ศ. ' + selectedYear])
+      summaryData.push(['รายการ', 'จำนวน/ยอดเงิน'])
+      summaryData.push(['📅 รายงานปี พ.ศ.', selectedYear.toString()])
+      summaryData.push(['📅 รายงานปี ค.ศ.', (selectedYear - 543).toString()])
+      summaryData.push(['💰 รายรับรวม', reportData.summary.totalIncome.toString()])
+      summaryData.push(['💸 รายจ่ายรวม', reportData.summary.totalExpenses.toString()])
+      summaryData.push(['📈 กำไรสุทธิ', reportData.summary.netProfit.toString()])
+      summaryData.push(['🏭 การผลิตรวม', reportData.summary.totalProduction.toString()])
+      summaryData.push(['📦 จำนวนออเดอร์', reportData.summary.totalOrders.toString()])
+      summaryData.push(['💼 จำนวนธุรกรรม', reportData.summary.totalTransactions.toString()])
+      summaryData.push(['📦 สต็อกคงเหลือ', reportData.summary.currentStock.toString()])
+      summaryData.push(['⚡ ค่าไฟรวม', reportData.summary.totalElectricityCost.toString()])
+      summaryData.push(['💵 ต้นทุนรวม', reportData.summary.totalCost.toString()])
+      summaryData.push(['💰 ราคาขายรวม', reportData.summary.totalSellingPrice.toString()])
       
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-      summarySheet['!cols'] = [{ wch: 20 }, { wch: 15 }]
+      const summarySheet = createFormattedSheet(summaryData, 'สรุปภาพรวม')
+      summarySheet['!cols'] = [{ wch: 25 }, { wch: 20 }]
+      
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'สรุปภาพรวม')
       
       // 2. สร้าง Sheet ข้อมูลรายเดือน
       const monthlySheetData = []
-      monthlySheetData.push(['ข้อมูลรายเดือน'])
-      monthlySheetData.push(['เดือน', 'รายรับ', 'รายจ่าย', 'กำไร', 'การผลิต', 'จำนวนออเดอร์'])
+      monthlySheetData.push(['📅 ข้อมูลรายเดือน - ปี พ.ศ. ' + selectedYear])
+      monthlySheetData.push(['เดือน', '💰 รายรับ', '💸 รายจ่าย', '📈 กำไร', '🏭 การผลิต', '📦 ออเดอร์'])
       const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
       months.forEach((month, index) => {
         const income = monthlyData[index].income
@@ -332,15 +352,16 @@ export default function ReportsManagement() {
         ])
       })
       
-      const monthlySheet = XLSX.utils.aoa_to_sheet(monthlySheetData)
+      const monthlySheet = createFormattedSheet(monthlySheetData, 'ข้อมูลรายเดือน')
       monthlySheet['!cols'] = [
-        { wch: 10 }, // เดือน
+        { wch: 12 }, // เดือน
         { wch: 15 }, // รายรับ
         { wch: 15 }, // รายจ่าย
         { wch: 15 }, // กำไร
         { wch: 15 }, // การผลิต
-        { wch: 15 }  // จำนวนออเดอร์
+        { wch: 12 }  // จำนวนออเดอร์
       ]
+      
       XLSX.utils.book_append_sheet(workbook, monthlySheet, 'ข้อมูลรายเดือน')
       
       // 3. สร้าง Sheet ข้อมูลออเดอร์ (แบ่งเป็นหลาย sheet ถ้าข้อมูลมาก)
@@ -369,11 +390,15 @@ export default function ReportsManagement() {
       // สร้าง sheet สำหรับแต่ละ chunk
       orderChunks.forEach((chunk, index) => {
         const ordersSheetData = []
-        ordersSheetData.push(['ข้อมูลออเดอร์'])
-        ordersSheetData.push(['LOT', 'วันที่', 'ผลิตภัณฑ์', 'จำนวน', 'สถานะ', 'ต้นทุน', 'ราคาขาย', 'ค่าไฟ'])
+        const sheetTitle = orderChunks.length === 1 
+          ? '📦 ข้อมูลออเดอร์ - ปี พ.ศ. ' + selectedYear
+          : `📦 ข้อมูลออเดอร์ ${index + 1} - ปี พ.ศ. ${selectedYear}`
+        
+        ordersSheetData.push([sheetTitle, '', '', '', '', '', '', ''])
+        ordersSheetData.push(['🏷️ LOT', '📅 วันที่', '🏭 ผลิตภัณฑ์', '📊 จำนวน', '📋 สถานะ', '💵 ต้นทุน', '💰 ราคาขาย', '⚡ ค่าไฟ'])
         ordersSheetData.push(...chunk)
         
-        const ordersSheet = XLSX.utils.aoa_to_sheet(ordersSheetData)
+        const ordersSheet = createFormattedSheet(ordersSheetData, 'ข้อมูลออเดอร์')
         ordersSheet['!cols'] = [
           { wch: 15 }, // LOT
           { wch: 12 }, // วันที่
@@ -395,8 +420,8 @@ export default function ReportsManagement() {
       
       // 4. สร้าง Sheet ข้อมูลวัตถุดิบ
       const materialsSheetData = []
-      materialsSheetData.push(['ข้อมูลวัตถุดิบ'])
-      materialsSheetData.push(['ชื่อ', 'จำนวน', 'หน่วย', 'ราคาต่อหน่วย', 'มูลค่ารวม'])
+      materialsSheetData.push(['🏗️ ข้อมูลวัตถุดิบ - ปี พ.ศ. ' + selectedYear])
+      materialsSheetData.push(['📦 ชื่อวัตถุดิบ', '📊 จำนวน', '📏 หน่วย', '💵 ราคาต่อหน่วย', '💰 มูลค่ารวม'])
       materials.forEach((material: any) => {
         materialsSheetData.push([
           material.name,
@@ -407,7 +432,7 @@ export default function ReportsManagement() {
         ])
       })
       
-      const materialsSheet = XLSX.utils.aoa_to_sheet(materialsSheetData)
+      const materialsSheet = createFormattedSheet(materialsSheetData, 'ข้อมูลวัตถุดิบ')
       materialsSheet['!cols'] = [
         { wch: 25 }, // ชื่อ
         { wch: 12 }, // จำนวน
@@ -415,23 +440,24 @@ export default function ReportsManagement() {
         { wch: 15 }, // ราคาต่อหน่วย
         { wch: 15 }  // มูลค่ารวม
       ]
+      
       XLSX.utils.book_append_sheet(workbook, materialsSheet, 'ข้อมูลวัตถุดิบ')
       
       // 5. สร้าง Sheet ข้อมูลธุรกรรม
       const transactionsSheetData = []
-      transactionsSheetData.push(['ข้อมูลธุรกรรม'])
-      transactionsSheetData.push(['วันที่', 'รายการ', 'จำนวนเงิน', 'ประเภท', 'หมายเหตุ'])
+      transactionsSheetData.push(['💼 ข้อมูลธุรกรรม - ปี พ.ศ. ' + selectedYear])
+      transactionsSheetData.push(['📅 วันที่', '📝 รายการ', '💰 จำนวนเงิน', '🏷️ ประเภท', '📋 หมายเหตุ'])
       filteredTransactions.forEach((transaction: any) => {
         transactionsSheetData.push([
           transaction.date,
           transaction.description,
           transaction.amount.toString(),
-          transaction.isIncome ? 'รายรับ' : 'รายจ่าย',
+          transaction.isIncome ? '📈 รายรับ' : '📉 รายจ่าย',
           transaction.notes || ''
         ])
       })
       
-      const transactionsSheet = XLSX.utils.aoa_to_sheet(transactionsSheetData)
+      const transactionsSheet = createFormattedSheet(transactionsSheetData, 'ข้อมูลธุรกรรม')
       transactionsSheet['!cols'] = [
         { wch: 12 }, // วันที่
         { wch: 30 }, // รายการ
@@ -439,6 +465,7 @@ export default function ReportsManagement() {
         { wch: 12 }, // ประเภท
         { wch: 30 }  // หมายเหตุ
       ]
+      
       XLSX.utils.book_append_sheet(workbook, transactionsSheet, 'ข้อมูลธุรกรรม')
       
       // Generate Excel file
