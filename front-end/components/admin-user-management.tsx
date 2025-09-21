@@ -264,7 +264,7 @@ export default function AdminUserManagement() {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-100">
-        <Sidebar isOpen={isSidebarOpen} activePage="User Management" onClose={() => setIsSidebarOpen(false)} />
+        <Sidebar isOpen={isSidebarOpen} activePage="จัดการผู้ใช้" onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <AdminHeader toggleSidebar={toggleSidebar} />
           <div className="flex-1 flex items-center justify-center">
@@ -280,7 +280,7 @@ export default function AdminUserManagement() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} activePage="User Management" onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} activePage="จัดการผู้ใช้" onClose={() => setIsSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader toggleSidebar={toggleSidebar} />
