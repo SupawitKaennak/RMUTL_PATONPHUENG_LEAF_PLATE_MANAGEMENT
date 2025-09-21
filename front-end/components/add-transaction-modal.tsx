@@ -78,7 +78,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-white text-white">
-        <DialogHeader className="bg-teal-500 text-white p-4">
+        <DialogHeader className="bg-green-500 text-white p-4">
           <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
           <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มรายรับหรือรายจ่ายใหม่</DialogDescription>
         </DialogHeader>
@@ -219,7 +219,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
           <div className="flex justify-end">
             <Button
               onClick={handleSave}
-              className="bg-teal-500 hover:bg-teal-500 text-white px-6"
+              className="bg-green-500 hover:bg-green-600 text-white px-6"
               disabled={!isFormValid}
             >
               บันทึก

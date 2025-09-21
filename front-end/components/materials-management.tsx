@@ -471,7 +471,7 @@ export default function MaterialsManagement() {
                 {hasMaterials && (
                   <button
                     onClick={handleAddMaterial}
-                    className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md flex items-center"
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center"
                   >
                     <span>เพิ่มวัตถุดิบ</span>
                   </button>
@@ -544,7 +544,7 @@ export default function MaterialsManagement() {
                       <p className="text-gray-500 mb-4">ไม่มีข้อมูลวัตถุดิบ</p>
                       <button
                         onClick={handleAddMaterial}
-                        className="bg-teal-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
                       >
                         เพิ่มวัตถุดิบแรก
                       </button>

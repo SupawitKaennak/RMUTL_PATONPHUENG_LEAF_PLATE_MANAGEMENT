@@ -102,7 +102,7 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg">
-        <DialogHeader className="bg-teal-400 text-black p-4">
+        <DialogHeader className="bg-green-500 text-black p-4">
           <DialogTitle className="text-center text-xl">เลือกเครื่องจักร</DialogTitle>
           <DialogDescription className="sr-only">เลือกเครื่องจักรสำหรับการผลิต</DialogDescription>
         </DialogHeader>
@@ -226,7 +226,7 @@ export default function SelectMachineModal({ isOpen, onClose, onSelect, quantity
             </Button>
             <Button
               onClick={handleSave}
-              className="bg-teal-400 hover:bg-teal-500 text-black px-6 w-full ml-2"
+              className="bg-green-500 hover:bg-green-600 text-black px-6 w-full ml-2"
               disabled={!selectedMachine}
             >
               บันทึก

@@ -125,7 +125,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg bg-white text-black">
-        <DialogHeader className="bg-teal-400 text-white p-4">
+        <DialogHeader className="bg-green-500 text-white p-4">
           <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
           <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มวัตถุดิบใหม่</DialogDescription>
         </DialogHeader>
@@ -211,7 +211,7 @@ export default function AddMaterialModal({ isOpen, onClose, onSave }: AddMateria
           </div>
 
           <div className="flex justify-end pt-4">
-            <Button onClick={handleSave} className="bg-teal-400 hover:bg-teal-500 text-white px-6">
+            <Button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white px-6">
               บันทึก
             </Button>
           </div>

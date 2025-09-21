@@ -41,7 +41,7 @@ export default function AddSellingPriceModal({ isOpen, onClose, onSave, order }:
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg">
-        <DialogHeader className="bg-teal-400 text-white p-4">
+        <DialogHeader className="bg-green-500 text-white p-4">
           <DialogTitle className="text-center text-xl">เพิ่มราคาขาย</DialogTitle>
           <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มราคาขาย</DialogDescription>
         </DialogHeader>
@@ -70,7 +70,7 @@ export default function AddSellingPriceModal({ isOpen, onClose, onSave, order }:
             <Button onClick={onClose} className="bg-gray-200 hover:bg-gray-500 text-black px-6">
               ยกเลิก
             </Button>
-            <Button onClick={handleSave} className="bg-teal-400 hover:bg-teal-500 text-white px-6">
+            <Button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white px-6">
               บันทึก
             </Button>
           </div>

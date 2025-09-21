@@ -91,12 +91,13 @@ export default function AdminUserManagement() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   
   // Form states
-  const [createForm, setCreateForm] = useState<CreateUserData>({
+  const [createForm, setCreateForm] = useState<CreateUserData & { isActive: boolean }>({
     username: "",
     email: "",
     password: "",
     fullName: "",
-    role: "user"
+    role: "user",
+    isActive: true
   })
   const [editForm, setEditForm] = useState<UpdateUserData>({})
   
@@ -177,7 +178,8 @@ export default function AdminUserManagement() {
         email: "",
         password: "",
         fullName: "",
-        role: "user"
+        role: "user",
+        isActive: true
       })
       setCreateDialogOpen(false)
       fetchUsers()
@@ -300,148 +302,151 @@ export default function AdminUserManagement() {
                     </Button>
                     <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm">
+                        <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white">
                           <Plus className="h-4 w-4 mr-1" />
                           เพิ่มผู้ใช้
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle className="text-xl font-semibold flex items-center">
-                            <Plus className="h-5 w-5 mr-2 text-green-600" />
-                            เพิ่มผู้ใช้ใหม่
+                      <DialogContent className="sm:max-w-2xl p-0">
+                        {/* Green Header */}
+                        <div className="bg-green-400 p-4 rounded-t-lg">
+                          <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center">
+                            <Plus className="h-5 w-5 mr-2" />
+                            เพิ่ม
                           </DialogTitle>
-                        </DialogHeader>
+                        </div>
                         
-                        <div className="space-y-6">
-                          {/* User Info Header */}
-                          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                <User className="h-5 w-5 text-green-600" />
-                              </div>
+                        <div className="p-6 bg-white">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Left Column */}
+                            <div className="space-y-4">
                               <div>
-                                <h3 className="font-semibold text-green-900">สร้างบัญชีผู้ใช้ใหม่</h3>
-                                <p className="text-sm text-green-700">กรอกข้อมูลผู้ใช้ที่ต้องการเพิ่มเข้าในระบบ</p>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  ชื่อผู้ใช้
+                                </label>
+                                <Input
+                                  value={createForm.username}
+                                  onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
+                                  placeholder="กรอกชื่อผู้ใช้"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                />
                               </div>
-                            </div>
-                          </div>
-
-                          {/* Form Fields */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <label className="block text-sm font-medium text-gray-700">
-                                ชื่อผู้ใช้ <span className="text-red-500">*</span>
-                              </label>
-                              <Input
-                                value={createForm.username}
-                                onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
-                                placeholder="กรอกชื่อผู้ใช้"
-                                className="focus:ring-green-500 focus:border-green-500"
-                              />
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  อีเมล
+                                </label>
+                                <Input
+                                  type="email"
+                                  value={createForm.email}
+                                  onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
+                                  placeholder="กรอกอีเมล"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  ชื่อเต็ม
+                                </label>
+                                <Input
+                                  value={createForm.fullName}
+                                  onChange={(e) => setCreateForm({...createForm, fullName: e.target.value})}
+                                  placeholder="กรอกชื่อเต็ม"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  รหัสผ่าน
+                                </label>
+                                <Input
+                                  type="password"
+                                  value={createForm.password}
+                                  onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
+                                  placeholder="กรอกรหัสผ่าน"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                />
+                              </div>
                             </div>
                             
-                            <div className="space-y-2">
-                              <label className="block text-sm font-medium text-gray-700">
-                                อีเมล <span className="text-red-500">*</span>
-                              </label>
-                              <Input
-                                type="email"
-                                value={createForm.email}
-                                onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
-                                placeholder="กรอกอีเมล"
-                                className="focus:ring-green-500 focus:border-green-500"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                              ชื่อเต็ม <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                              value={createForm.fullName}
-                              onChange={(e) => setCreateForm({...createForm, fullName: e.target.value})}
-                              placeholder="กรอกชื่อเต็ม"
-                              className="focus:ring-green-500 focus:border-green-500"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <label className="block text-sm font-medium text-gray-700">
-                                รหัสผ่าน <span className="text-red-500">*</span>
-                              </label>
-                              <Input
-                                type="password"
-                                value={createForm.password}
-                                onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
-                                placeholder="กรอกรหัสผ่าน"
-                                className="focus:ring-green-500 focus:border-green-500"
-                              />
-                              <p className="text-xs text-gray-500">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</p>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="block text-sm font-medium text-gray-700">
-                                บทบาท <span className="text-red-500">*</span>
-                              </label>
-                              <Select
-                                value={createForm.role}
-                                onValueChange={(value: 'admin' | 'user') => setCreateForm({...createForm, role: value})}
-                              >
-                                <SelectTrigger className="focus:ring-green-500 focus:border-green-500">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="user">
-                                    <div className="flex items-center">
-                                      <User className="h-4 w-4 mr-2" />
-                                      ผู้ใช้
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="admin">
-                                    <div className="flex items-center">
-                                      <Shield className="h-4 w-4 mr-2 text-red-600" />
-                                      ผู้ดูแลระบบ
-                                    </div>
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          {/* Role Explanation */}
-                          <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                            <div className="flex items-start space-x-2">
-                              <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center mt-0.5">
-                                <span className="text-amber-600 text-xs">⚠</span>
+                            {/* Right Column */}
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  บทบาท
+                                </label>
+                                <Select
+                                  value={createForm.role}
+                                  onValueChange={(value: 'admin' | 'user') => setCreateForm({...createForm, role: value})}
+                                >
+                                  <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="user">ผู้ใช้</SelectItem>
+                                    <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
-                              <div className="text-sm text-amber-800">
-                                <p className="font-medium mb-1">เกี่ยวกับบทบาท:</p>
-                                <ul className="space-y-1 text-xs">
-                                  <li>• <strong>ผู้ใช้:</strong> เข้าถึงได้เฉพาะฟีเจอร์ปกติของระบบ</li>
-                                  <li>• <strong>ผู้ดูแลระบบ:</strong> เข้าถึงได้ทุกฟีเจอร์รวมถึงหน้า Admin</li>
-                                </ul>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  สถานะ
+                                </label>
+                                <Select
+                                  value={createForm.isActive ? 'active' : 'inactive'}
+                                  onValueChange={(value) => setCreateForm({...createForm, isActive: value === 'active'})}
+                                >
+                                  <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="active">ใช้งานอยู่</SelectItem>
+                                    <SelectItem value="inactive">ปิดใช้งาน</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  วันที่สร้าง
+                                </label>
+                                <Input
+                                  value={new Date().toLocaleDateString('th-TH')}
+                                  disabled
+                                  className="bg-gray-100 text-gray-600"
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  เข้าสู่ระบบล่าสุด
+                                </label>
+                                <Input
+                                  value="ยังไม่เคยเข้าสู่ระบบ"
+                                  disabled
+                                  className="bg-gray-100 text-gray-600"
+                                />
                               </div>
                             </div>
                           </div>
-
+                          
                           {/* Action Buttons */}
-                          <div className="flex justify-end space-x-3 pt-4 border-t">
+                          <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-gray-200">
                             <Button 
                               variant="outline" 
                               onClick={() => setCreateDialogOpen(false)}
-                              className="px-6"
+                              className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700"
                             >
-                              ยกเลิก
+                              ย้อนกลับ
                             </Button>
                             <Button 
                               onClick={handleCreateUser}
-                              className="px-6 bg-green-600 hover:bg-green-700"
+                              className="px-6 bg-green-400 hover:bg-green-500 text-gray-900 font-medium"
                             >
-                              <Plus className="h-4 w-4 mr-2" />
-                              สร้างผู้ใช้
+                              เพิ่ม
                             </Button>
                           </div>
                         </div>

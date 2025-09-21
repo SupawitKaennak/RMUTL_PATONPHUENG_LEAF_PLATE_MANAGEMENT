@@ -762,7 +762,7 @@ export default function OrdersManagement() {
               {hasOrders && (
                 <button
                   onClick={handleAddOrder}
-                  className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
                 >
                   เพิ่มออเดอร์
                 </button>
@@ -896,7 +896,7 @@ export default function OrdersManagement() {
                               ) : (
                                 <button
                                   onClick={() => handleAddProduction(order.id)}
-                                  className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-xs"
                                 >
                                   เพิ่ม
                                 </button>
@@ -908,7 +908,7 @@ export default function OrdersManagement() {
                               ) : (
                                 <button
                                   onClick={() => handleSelectMachine(order.id)}
-                                  className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-xs"
                                 >
                                   เลือกเครื่องจักร
                                 </button>
@@ -935,7 +935,7 @@ export default function OrdersManagement() {
                               ) : (
                                 <button
                                   onClick={() => handleAddSellingPrice(order)}
-                                  className="bg-teal-400 hover:bg-teal-500 text-white px-3 py-1 rounded-md text-xs"
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-xs"
                                 >
                                   เพิ่มราคาขาย
                                 </button>
@@ -978,7 +978,7 @@ export default function OrdersManagement() {
                       <p className="text-gray-500 mb-4">ยังไม่มีรายการออเดอร์</p>
                       <button
                         onClick={handleAddOrder}
-                        className="bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-md"
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
                       >
                         เพิ่มออเดอร์แรก
                       </button>
@@ -994,7 +994,7 @@ export default function OrdersManagement() {
       {/* Add Order Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg">
-          <DialogHeader className="bg-teal-400 text-white p-4">
+          <DialogHeader className="bg-green-500 text-white p-4">
             <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
             <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มออเดอร์ใหม่</DialogDescription>
           </DialogHeader>
@@ -1064,7 +1064,7 @@ export default function OrdersManagement() {
               >
                 ยกเลิก
               </Button>
-              <Button onClick={handleSaveOrder} className="bg-teal-400 hover:bg-teal-500 text-white px-6">
+              <Button onClick={handleSaveOrder} className="bg-green-500 hover:bg-green-600 text-white px-6">
                 บันทึก
               </Button>
             </div>
@@ -1075,7 +1075,7 @@ export default function OrdersManagement() {
       {/* Add Production Modal */}
       <Dialog open={isAddProductionModalOpen} onOpenChange={setIsAddProductionModalOpen}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-lg">
-          <DialogHeader className="bg-teal-400 text-white p-4">
+          <DialogHeader className="bg-green-500 text-white p-4">
             <DialogTitle className="text-center text-xl">เพิ่ม</DialogTitle>
             <DialogDescription className="sr-only">ฟอร์มสำหรับเพิ่มจำนวนการผลิต</DialogDescription>
           </DialogHeader>
@@ -1111,7 +1111,7 @@ export default function OrdersManagement() {
               >
                 ยกเลิก
               </Button>
-              <Button onClick={handleSaveProduction} className="bg-teal-400 hover:bg-teal-500 text-white px-6">
+              <Button onClick={handleSaveProduction} className="bg-green-500 hover:bg-green-600 text-white px-6">
                 บันทึก
               </Button>
             </div>
