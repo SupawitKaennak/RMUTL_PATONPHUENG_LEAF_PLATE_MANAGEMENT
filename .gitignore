@@ -3,3 +3,7 @@ certs/*
 !certs/.gitkeep
 *.pem
 *.key
+# Cypress artifacts
+front-end/cypress/screenshots/
+front-end/cypress/videos/
+front-end/.cypress-cache/
