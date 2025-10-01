@@ -68,7 +68,13 @@ export const env = {
   FIREBASE_TOKEN_URI: process.env.FIREBASE_TOKEN_URI!,
   
   // CORS Configuration
-  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://localhost',
+    'https://127.0.0.1',
+    'https://[::1]'
+  ],
   
   // Security Configuration
   BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10'),

@@ -1,0 +1,46 @@
+services:
+  backend:
+    container_name: leaf-plate-backend
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=development
+      - ALLOWED_ORIGINS=https://localhost,https://127.0.0.1,https://[::1]
+    volumes:
+      - ./back-end:/app
+      - ./back-end/.env.local:/app/.env.local:ro
+      - /app/node_modules
+    expose:
+      - "8000"
+    command: npm run dev
+
+  frontend:
+    container_name: leaf-plate-frontend
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=https://localhost
+    volumes:
+      - ./front-end:/app
+      - ./front-end/.env.local:/app/.env.local:ro
+      - /app/node_modules
+    expose:
+      - "3000"
+    command: npm run dev
+
+  caddy:
+    image: caddy:2.8
+    container_name: leaf-plate-caddy
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
