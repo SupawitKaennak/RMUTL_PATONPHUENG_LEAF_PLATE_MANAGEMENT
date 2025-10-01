@@ -14,9 +14,10 @@ export const setCsrfCookie = (res: Response) => {
   res.cookie(CSRF_COOKIE_NAME, token, {
     httpOnly: false, // double submit cookie pattern requires readable cookie
     secure: isProduction,
-    sameSite: "strict",
+    sameSite: "lax" as const,
     maxAge: 30 * 60 * 1000, // 30 minutes
     path: "/",
+    // ไม่ตั้ง domain เพื่อให้ cookies ทำงานกับทั้ง localhost และ 127.0.0.1
   })
   return token
 }

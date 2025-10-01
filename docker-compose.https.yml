@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile.dev
     environment:
       - NODE_ENV=development
-      - ALLOWED_ORIGINS=https://localhost,https://127.0.0.1,https://[::1]
+      - ALLOWED_ORIGINS=https://localhost,https://127.0.0.1
     volumes:
       - ./back-end:/app
       - ./back-end/.env.local:/app/.env.local:ro
@@ -39,8 +39,11 @@ services:
       - "80:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./certs:/certs:ro
+      - caddy_data:/data
     depends_on:
       - frontend
       - backend
     restart: unless-stopped
+
+volumes:
+  caddy_data:

@@ -82,23 +82,20 @@ router.post("/register", validateRegistration, async (req, res) => {
 
     // Set HttpOnly cookie with token
     const isProduction = process.env.NODE_ENV === 'production'
-    res.cookie('authToken', token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: isProduction, // Only secure in production (HTTPS)
-      sameSite: 'strict',
+      sameSite: 'lax' as const,
       maxAge: 30 * 60 * 1000, // 30 minutes
       path: '/'
-    })
+      // ไม่ตั้ง domain เพื่อให้ cookies ทำงานกับทั้ง localhost และ 127.0.0.1
+    }
+    
+    res.cookie('authToken', token, cookieOptions)
 
     // Set token expiry cookie
     const expiryTime = Date.now() + (30 * 60 * 1000) // 30 minutes
-    res.cookie('tokenExpiry', expiryTime.toString(), {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-      maxAge: 30 * 60 * 1000, // 30 minutes
-      path: '/'
-    })
+    res.cookie('tokenExpiry', expiryTime.toString(), cookieOptions)
 
     // Issue CSRF cookie for frontend to read
     const csrfToken = setCsrfCookie(res)
@@ -198,23 +195,20 @@ router.post("/login", validateLogin, async (req, res) => {
 
     // Set HttpOnly cookie with token
     const isProduction = process.env.NODE_ENV === 'production'
-    res.cookie('authToken', token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: isProduction, // Only secure in production (HTTPS)
-      sameSite: 'strict',
+      sameSite: 'lax' as const,
       maxAge: 30 * 60 * 1000, // 30 minutes
       path: '/'
-    })
+      // ไม่ตั้ง domain เพื่อให้ cookies ทำงานกับทั้ง localhost และ 127.0.0.1
+    }
+    
+    res.cookie('authToken', token, cookieOptions)
 
     // Set token expiry cookie
     const expiryTime = Date.now() + (30 * 60 * 1000) // 30 minutes
-    res.cookie('tokenExpiry', expiryTime.toString(), {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-      maxAge: 30 * 60 * 1000, // 30 minutes
-      path: '/'
-    })
+    res.cookie('tokenExpiry', expiryTime.toString(), cookieOptions)
 
     // Issue CSRF cookie for frontend to read
     const csrfToken = setCsrfCookie(res)

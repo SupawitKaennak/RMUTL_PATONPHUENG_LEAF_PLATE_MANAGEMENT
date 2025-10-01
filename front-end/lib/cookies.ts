@@ -51,7 +51,7 @@ export const setCookie = (
     domain,
     secure = true, // Default to secure for production
     httpOnly = false, // Cannot be set to true from client-side
-    sameSite = 'strict'
+    sameSite = 'lax'
   } = options
 
   let cookieString = `${name}=${value}`
@@ -125,7 +125,7 @@ export const authCookies = {
     setCookie('authToken', token, {
       maxAge,
       secure: true,
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/'
     })
   },
@@ -144,7 +144,7 @@ export const authCookies = {
     setCookie('tokenExpiry', expiryTime.toString(), {
       maxAge: 30 * 60, // 30 minutes
       secure: true,
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/'
     })
   },

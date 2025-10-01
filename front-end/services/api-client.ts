@@ -1,5 +1,16 @@
 // HTTP Client for API communication
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Client-side: API is at the same origin as the page.
+    // This ensures cookies work correctly for both localhost and 127.0.0.1.
+    return window.location.origin;
+  }
+  
+  // Server-side rendering: Use the environment variable.
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 interface ApiResponse<T = any> {
   success: boolean
@@ -22,7 +33,8 @@ class ApiClient {
       }
     } catch {}
     try {
-      await fetch(`${API_BASE_URL}/api/auth/csrf`, {
+      const baseUrl = getApiBaseUrl()
+      await fetch(`${baseUrl}/api/auth/csrf`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -32,7 +44,8 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     try {
-      const url = `${API_BASE_URL}/api${endpoint}`
+      const baseUrl = getApiBaseUrl()
+      const url = `${baseUrl}/api${endpoint}`
       
       // For non-GET, make sure CSRF cookie is present
       const method = (options.method || 'GET').toUpperCase()

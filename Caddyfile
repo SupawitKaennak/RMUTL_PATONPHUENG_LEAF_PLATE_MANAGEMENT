@@ -2,10 +2,7 @@
 	redir https://localhost{uri}
 }
 
-https://localhost https://127.0.0.1 https://[::1] {
-    # Use mkcert-generated certificates (trusted by OS)
-    tls /certs/localhost+2.pem /certs/localhost+2-key.pem
-
+https://localhost {
 	encode gzip
 
 	# Route /api to backend
