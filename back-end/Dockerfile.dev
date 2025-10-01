@@ -1,0 +1,24 @@
+# Dev Dockerfile for back-end (Node + TypeScript)
+# Use lightweight Node image
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install OS deps if needed (firebase-admin needs build tools on alpine)
+RUN apk add --no-cache python3 make g++
+
+# Copy manifest files first for better caching
+COPY package*.json ./
+
+# Install dependencies with legacy peer deps handling
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Expose backend port
+EXPOSE 8000
+
+# Default command: run dev server with ts-node-dev
+CMD ["npm", "run", "dev"]

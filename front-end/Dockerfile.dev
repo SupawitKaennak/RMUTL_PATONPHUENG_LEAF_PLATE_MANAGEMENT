@@ -1,0 +1,20 @@
+# Dev Dockerfile for front-end (Next.js)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install OS deps if needed
+RUN apk add --no-cache python3 make g++
+
+COPY package*.json ./
+
+# Install dependencies with legacy peer deps handling
+RUN npm install --legacy-peer-deps
+
+COPY . .
+
+EXPOSE 3000
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+CMD ["npm", "run", "dev"]

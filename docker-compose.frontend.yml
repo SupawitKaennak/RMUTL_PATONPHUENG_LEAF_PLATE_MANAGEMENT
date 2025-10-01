@@ -1,0 +1,16 @@
+services:
+  frontend:
+    container_name: leaf-plate-frontend
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./front-end:/app
+      - ./front-end/.env.local:/app/.env.local:ro
+      - /app/node_modules
+    command: npm run dev
+    restart: unless-stopped

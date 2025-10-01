@@ -1,0 +1,16 @@
+services:
+  backend:
+    container_name: leaf-plate-backend
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./back-end:/app
+      - ./back-end/.env.local:/app/.env.local:ro
+      - /app/node_modules
+    command: npm run dev
+    restart: unless-stopped
