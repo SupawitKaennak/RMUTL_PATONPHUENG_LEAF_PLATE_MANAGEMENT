@@ -1,5 +1,0 @@
-# Local TLS certificates (mkcert)
-certs/*
-!certs/.gitkeep
-*.pem
-*.key
