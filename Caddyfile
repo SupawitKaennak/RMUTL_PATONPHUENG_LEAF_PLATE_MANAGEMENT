@@ -1,12 +1,8 @@
-:80 {
-	redir https://localhost{uri}
-}
-
-https://localhost {
+localhost, 127.0.0.1 {
 	encode gzip
 
 	# Route /api to backend
-	@api path /api*
+	@api path /api/*
 	handle @api {
 		reverse_proxy backend:8000
 	}
@@ -15,4 +11,8 @@ https://localhost {
 	handle {
 		reverse_proxy frontend:3000
 	}
+}
+
+:80 {
+	redir https://{host}{uri}
 }
