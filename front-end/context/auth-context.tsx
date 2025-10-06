@@ -108,18 +108,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true)
       const response = await apiClient.register(username, email, password, fullName)
-      
+
       if (response.success && response.data) {
         const { user: userData } = response.data as { user: User }
-        
-        // Backend จะตั้งค่า HttpOnly cookies อัตโนมัติ
+
+        // Backend will automatically set HttpOnly cookies
         setUser(userData)
         return true
       }
-      return false
+      // If the API call was successful but the business logic failed, throw an error.
+      throw new Error(response.message || "An unknown registration error occurred.")
     } catch (error) {
       console.error("Register error:", error)
-      return false
+      throw error // Re-throw the error to be caught by the UI component
     } finally {
       setIsLoading(false)
     }
