@@ -154,8 +154,8 @@ export default function EditOrderModal({ isOpen, onClose, onSave, order }: EditO
                     id="edit-date"
                     type="text"
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="pr-10"
+                    readOnly
+                    className="pr-10 bg-gray-100 cursor-not-allowed"
                   />
                   <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 </div>

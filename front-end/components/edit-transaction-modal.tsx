@@ -117,8 +117,8 @@ export default function EditTransactionModal({ isOpen, onClose, onSave, transact
                 type="text"
                 placeholder="DD/MM/YY"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="pr-10 bg-white border-gray-300 text-black"
+                readOnly
+                className="pr-10 bg-gray-100 border-gray-300 text-black cursor-not-allowed"
               />
               <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white" size={20} />
             </div>

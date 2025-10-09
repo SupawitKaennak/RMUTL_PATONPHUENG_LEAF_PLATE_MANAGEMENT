@@ -307,6 +307,7 @@ export default function OrdersManagement() {
   }, [filterDate, filterMonth, filterYear, filterSearch, orders])
 
   const handleAddOrder = () => {
+    setNewOrderDate(getCurrentThaiDate())
     setShowAddModal(true)
   }
 
@@ -1009,8 +1010,8 @@ export default function OrdersManagement() {
                     id="order-date"
                     type="text"
                     value={newOrderDate}
-                    onChange={(e) => setNewOrderDate(e.target.value)}
-                    className="pr-10"
+                    readOnly
+                    className="pr-10 bg-gray-100 cursor-not-allowed"
                     placeholder={getCurrentThaiDate()}
                   />
                   <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />

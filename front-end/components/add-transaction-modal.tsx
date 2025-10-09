@@ -26,6 +26,13 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
   const [quantity, setQuantity] = useState("")
   const [isFormValid, setIsFormValid] = useState(false)
 
+  // Set current date when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setDate(getCurrentThaiDate())
+    }
+  }, [isOpen])
+
   useEffect(() => {
     // Check if all required fields are filled
     const isValid = category.trim() !== "" && description.trim() !== "" && Number.parseFloat(amount) >= 0
@@ -114,8 +121,8 @@ export default function AddTransactionModal({ isOpen, onClose, onSave }: AddTran
                 type="text"
                 placeholder={getCurrentThaiDate()}
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="pr-10 bg-white border-gray text-black"
+                readOnly
+                className="pr-10 bg-gray-100 border-gray text-black cursor-not-allowed"
               />
               <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white" size={20} />
             </div>
