@@ -98,7 +98,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false
     } catch (error) {
       console.error("Login error:", error)
-      return false
+      // ส่งต่อ error เพื่อให้ UI component จัดการได้
+      throw error
     } finally {
       setIsLoading(false)
     }

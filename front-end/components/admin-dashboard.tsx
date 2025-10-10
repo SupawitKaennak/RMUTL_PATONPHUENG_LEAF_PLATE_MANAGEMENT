@@ -46,7 +46,7 @@ const AdminHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
         </button>
         <h1 className="text-xl font-semibold flex items-center">
           <Shield className="h-6 w-6 mr-2" />
-          Admin Dashboard
+          หน้าหลักของผู้ดูแลระบบ
         </h1>
       </div>
       
@@ -100,14 +100,14 @@ export default function AdminDashboard() {
   }
 
   const adminMenuItems = [
-    { name: "Admin Dashboard", href: "/admin", icon: "Shield" },
+    { name: "หน้าหลักของผู้ดูแลระบบ", href: "/admin", icon: "Shield" },
     { name: "User Management", href: "/admin/users", icon: "Users" },
   ]
 
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-100">
-        <Sidebar isOpen={isSidebarOpen} activePage="Admin Dashboard" onClose={() => setIsSidebarOpen(false)} />
+        <Sidebar isOpen={isSidebarOpen} activePage="หน้าหลักของผู้ดูแลระบบ" onClose={() => setIsSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <AdminHeader toggleSidebar={toggleSidebar} />
           <div className="flex-1 flex items-center justify-center">
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} activePage="Admin Dashboard" onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} activePage="หน้าหลักของผู้ดูแลระบบ" onClose={() => setIsSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader toggleSidebar={toggleSidebar} />

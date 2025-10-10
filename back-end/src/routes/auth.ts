@@ -23,105 +23,12 @@ router.get("/csrf", (req, res) => {
   res.json({ success: true, data: { cookie: name } })
 })
 
-// POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่
+// POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่ (ปิดใช้งาน)
 router.post("/register", validateRegistration, async (req, res) => {
-  try {
-    const { username, email, password, fullName } = req.body
-
-    // ตรวจสอบว่ามี username หรือ email นี้อยู่แล้วหรือไม่
-    const existingUserSnapshot = await db.collection("users")
-      .where("username", "==", username)
-      .get()
-
-    if (!existingUserSnapshot.empty) {
-      res.status(400).json({
-        success: false,
-        error: "Username already exists"
-      })
-      return
-    }
-
-    const existingEmailSnapshot = await db.collection("users")
-      .where("email", "==", email)
-      .get()
-
-    if (!existingEmailSnapshot.empty) {
-      res.status(400).json({
-        success: false,
-        error: "Email already exists"
-      })
-      return
-    }
-
-    // เข้ารหัส password
-    const saltRounds = env.BCRYPT_SALT_ROUNDS
-    const hashedPassword = await bcrypt.hash(password, saltRounds)
-
-    // สร้างผู้ใช้ใหม่ (default role เป็น 'user')
-    const userData = {
-      username,
-      email,
-      password: hashedPassword,
-      fullName,
-      role: 'user',
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-
-    const docRef = await db.collection("users").add(userData)
-
-    // สร้าง JWT token
-    const token = generateToken({
-      userId: docRef.id,
-      username,
-      email,
-      fullName,
-      role: 'user'
-    })
-
-    // Set HttpOnly cookie with token
-    const isProduction = process.env.NODE_ENV === 'production'
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isProduction, // Only secure in production (HTTPS)
-      sameSite: 'lax' as const,
-      maxAge: 30 * 60 * 1000, // 30 minutes
-      path: '/'
-      // ไม่ตั้ง domain เพื่อให้ cookies ทำงานกับทั้ง localhost และ 127.0.0.1
-    }
-    
-    res.cookie('authToken', token, cookieOptions)
-
-    // Set token expiry cookie
-    const expiryTime = Date.now() + (30 * 60 * 1000) // 30 minutes
-    res.cookie('tokenExpiry', expiryTime.toString(), cookieOptions)
-
-    // Issue CSRF cookie for frontend to read
-    const csrfToken = setCsrfCookie(res)
-
-    const response: ApiResponse<{ user: any }> = {
-      success: true,
-      data: {
-        user: {
-          id: docRef.id,
-          username,
-          email,
-          fullName,
-          role: 'user'
-        }
-      },
-      message: "User registered successfully"
-    }
-
-    res.status(201).json({ ...response, csrfCookie: getCsrfCookieName() })
-  } catch (error) {
-    console.error("Error registering user:", error)
-    res.status(500).json({
-      success: false,
-      error: "Failed to register user"
-    })
-  }
+  res.status(403).json({
+    success: false,
+    error: "การลงทะเบียนถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ"
+  })
 })
 
 // POST /api/auth/login - เข้าสู่ระบบ
@@ -165,6 +72,13 @@ router.post("/login", validateLogin, async (req, res) => {
     }
 
     const userData = userDoc.data()
+
+    // ตรวจสอบสถานะบัญชีผู้ใช้
+    if (userData.isActive === false) {
+      logSecurityEvent("auth.login.failure", { ip, username: userData.username, reason: "account_disabled" })
+      res.status(401).json({ success: false, error: "บัญชีถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ" })
+      return
+    }
 
     // ตรวจสอบ password
     const isPasswordValid = await bcrypt.compare(password, userData.password)
@@ -296,6 +210,15 @@ router.get("/me", async (req, res) => {
       }
 
       const userData = userDoc.data()
+
+      // ตรวจสอบสถานะบัญชีผู้ใช้
+      if (userData?.isActive === false) {
+        res.status(401).json({
+          success: false,
+          error: "บัญชีถูกปิดใช้งาน"
+        })
+        return
+      }
 
       res.json({
         success: true,

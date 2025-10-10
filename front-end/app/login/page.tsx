@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,8 +32,9 @@ export default function LoginPage() {
       } else {
         setError("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
       }
-    } catch (err) {
-      setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ")
+    } catch (err: any) {
+      // แสดง error message จาก backend หรือข้อความ default
+      setError(err.message || "เกิดข้อผิดพลาดในการเข้าสู่ระบบ")
     } finally {
       setIsSubmitting(false)
     }
@@ -125,17 +125,12 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                ยังไม่มีบัญชี?{" "}
-                <Link
-                  href="/register"
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  ลงทะเบียน
-                </Link>
+            <div className="mt-4 text-center">
+              <p className="text-sm text-blue-600">
+                *หากต้องการลงทะเบียนเข้าสู่ระบบให้แจ้งผู้ดูแลระบบ*
               </p>
             </div>
+
           </CardContent>
         </Card>
       </div>

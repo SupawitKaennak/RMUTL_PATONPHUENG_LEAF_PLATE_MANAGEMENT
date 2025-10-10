@@ -21,7 +21,7 @@ export default function Sidebar({ isOpen, activePage = "รายรับ - ร
 
   // เพิ่มเมนู Admin สำหรับผู้ดูแลระบบ
   const adminMenuItems = [
-    { name: "Admin Dashboard", href: "/admin" },
+    { name: "หน้าหลักของผู้ดูแลระบบ", href: "/admin" },
     { name: "จัดการผู้ใช้", href: "/admin/users" },
   ]
 

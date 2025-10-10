@@ -23,7 +23,7 @@ declare global {
  * JWT Authentication Middleware
  * Verifies JWT token from cookies and adds user info to request object
  */
-export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   // Try to get token from cookies first, then fallback to Authorization header
   let token = req.cookies?.authToken
   
@@ -44,6 +44,30 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as any
+    
+    // ตรวจสอบสถานะผู้ใช้จากฐานข้อมูล
+    const { db } = await import('../config/firebase')
+    const userDoc = await db.collection("users").doc(decoded.userId).get()
+    
+    if (!userDoc.exists) {
+      res.status(401).json({ 
+        success: false, 
+        error: "Unauthorized: User not found" 
+      })
+      return
+    }
+    
+    const userData = userDoc.data()
+    
+    // ตรวจสอบสถานะบัญชีผู้ใช้
+    if (userData?.isActive === false) {
+      res.status(401).json({ 
+        success: false, 
+        error: "Unauthorized: Account disabled" 
+      })
+      return
+    }
+    
     req.user = {
       userId: decoded.userId,
       username: decoded.username,
@@ -68,7 +92,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
  * Optional JWT Authentication Middleware
  * Verifies JWT token if present, but doesn't require it
  */
-export const optionalAuthenticateToken = (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuthenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   // Try to get token from cookies first, then fallback to Authorization header
   let token = req.cookies?.authToken
   
@@ -85,14 +109,26 @@ export const optionalAuthenticateToken = (req: Request, res: Response, next: Nex
   
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as any
-    req.user = {
-      userId: decoded.userId,
-      username: decoded.username,
-      email: decoded.email,
-      fullName: decoded.fullName,
-      role: decoded.role || 'user',
-      iat: decoded.iat,
-      exp: decoded.exp
+    
+    // ตรวจสอบสถานะผู้ใช้จากฐานข้อมูล (เฉพาะเมื่อมี token)
+    const { db } = await import('../config/firebase')
+    const userDoc = await db.collection("users").doc(decoded.userId).get()
+    
+    if (userDoc.exists) {
+      const userData = userDoc.data()
+      
+      // ตรวจสอบสถานะบัญชีผู้ใช้
+      if (userData?.isActive !== false) {
+        req.user = {
+          userId: decoded.userId,
+          username: decoded.username,
+          email: decoded.email,
+          fullName: decoded.fullName,
+          role: decoded.role || 'user',
+          iat: decoded.iat,
+          exp: decoded.exp
+        }
+      }
     }
   } catch (error) {
     console.error('JWT verification error:', error)
