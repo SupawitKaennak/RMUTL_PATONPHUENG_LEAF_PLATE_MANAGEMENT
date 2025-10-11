@@ -48,6 +48,22 @@ node scripts/create-admin.js
 - Password: `admin123`
 - Full Name: `System Administrator`
 
+
+## ใช้ postman สร้าง admin
+```
+POST http://localhost:8000/api/auth/register
+Content-Type: application/json
+X-CSRF-Token: [CSRF Token ที่ได้จากขั้นตอนที่ 1]
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "password123",
+  "fullName": "ทดสอบ ผู้ใช้"
+}
+```
+
+
 ### 2. เข้าสู่ระบบเป็น Admin
 
 1. เปิดเว็บไซต์และไปที่หน้า Login

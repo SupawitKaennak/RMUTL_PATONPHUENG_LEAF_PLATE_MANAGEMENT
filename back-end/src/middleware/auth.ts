@@ -37,7 +37,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   if (!token) {
     res.status(401).json({ 
       success: false, 
-      error: "Unauthorized: Missing authToken" 
+      error: "ไม่พบ Token การเข้าสู่ระบบ" 
     })
     return
   }
@@ -52,7 +52,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     if (!userDoc.exists) {
       res.status(401).json({ 
         success: false, 
-        error: "Unauthorized: User not found" 
+        error: "ไม่พบผู้ใช้ในระบบ" 
       })
       return
     }
@@ -63,7 +63,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     if (userData?.isActive === false) {
       res.status(401).json({ 
         success: false, 
-        error: "Unauthorized: Account disabled" 
+        error: "บัญชีถูกปิดใช้งาน" 
       })
       return
     }
@@ -82,7 +82,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     console.error('JWT verification error:', error)
     res.status(401).json({ 
       success: false, 
-      error: "Unauthorized: Invalid or expired token" 
+      error: "Token ไม่ถูกต้องหรือหมดอายุ" 
     })
     return
   }
@@ -175,7 +175,7 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   if (!req.user) {
     res.status(401).json({ 
       success: false, 
-      error: "Unauthorized: Authentication required" 
+      error: "ต้องเข้าสู่ระบบก่อน" 
     })
     return
   }
@@ -183,7 +183,7 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   if (req.user.role !== 'admin') {
     res.status(403).json({ 
       success: false, 
-      error: "Forbidden: Admin access required" 
+      error: "ต้องเป็นผู้ดูแลระบบเท่านั้น" 
     })
     return
   }

@@ -23,12 +23,104 @@ router.get("/csrf", (req, res) => {
   res.json({ success: true, data: { cookie: name } })
 })
 
-// POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่ (ปิดใช้งาน)
+// POST /api/auth/register - ลงทะเบียนผู้ใช้ใหม่ (เปิดใช้งานชั่วคราว)
 router.post("/register", validateRegistration, async (req, res) => {
-  res.status(403).json({
-    success: false,
-    error: "การลงทะเบียนถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ"
-  })
+  try {
+    const { username, email, password, fullName } = req.body
+
+    // ตรวจสอบว่ามี username หรือ email นี้อยู่แล้วหรือไม่
+    const existingUserSnapshot = await db.collection("users")
+      .where("username", "==", username)
+      .get()
+
+    if (!existingUserSnapshot.empty) {
+      res.status(400).json({
+        success: false,
+        error: "ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว"
+      })
+      return
+    }
+
+    const existingEmailSnapshot = await db.collection("users")
+      .where("email", "==", email)
+      .get()
+
+    if (!existingEmailSnapshot.empty) {
+      res.status(400).json({
+        success: false,
+        error: "อีเมลนี้มีอยู่ในระบบแล้ว"
+      })
+      return
+    }
+
+    // เข้ารหัส password
+    const saltRounds = env.BCRYPT_SALT_ROUNDS
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+    // สร้างผู้ใช้ใหม่ (default role เป็น 'user')
+    const userData = {
+      username,
+      email,
+      password: hashedPassword,
+      fullName,
+      role: 'user',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    const docRef = await db.collection("users").add(userData)
+
+    // สร้าง JWT token
+    const token = generateToken({
+      userId: docRef.id,
+      username,
+      email,
+      fullName,
+      role: 'user'
+    })
+
+    // Set HttpOnly cookie with token
+    const isProduction = process.env.NODE_ENV === 'production'
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction, // Only secure in production (HTTPS)
+      sameSite: 'lax' as const,
+      maxAge: 30 * 60 * 1000, // 30 minutes
+      path: '/'
+    }
+    
+    res.cookie('authToken', token, cookieOptions)
+
+    // Set token expiry cookie
+    const expiryTime = Date.now() + (30 * 60 * 1000) // 30 minutes
+    res.cookie('tokenExpiry', expiryTime.toString(), cookieOptions)
+
+    // Issue CSRF cookie for frontend to read
+    const csrfToken = setCsrfCookie(res)
+
+    const response: ApiResponse<{ user: any }> = {
+      success: true,
+      data: {
+        user: {
+          id: docRef.id,
+          username,
+          email,
+          fullName,
+          role: 'user'
+        }
+      },
+      message: "User registered successfully"
+    }
+
+    res.status(201).json({ ...response, csrfCookie: getCsrfCookieName() })
+  } catch (error) {
+    console.error("Error registering user:", error)
+    res.status(500).json({
+      success: false,
+      error: "เกิดข้อผิดพลาดในการลงทะเบียน"
+    })
+  }
 })
 
 // POST /api/auth/login - เข้าสู่ระบบ
@@ -41,7 +133,7 @@ router.post("/login", validateLogin, async (req, res) => {
     const entry = loginAttempts[key]
     if (entry && entry.until && entry.until > Date.now()) {
       logSecurityEvent("auth.login.locked", { ip, username })
-      res.status(429).json({ success: false, error: "Too many attempts. Try again later." })
+      res.status(429).json({ success: false, error: "พยายามเข้าสู่ระบบมากเกินไป กรุณาลองใหม่อีกครั้ง" })
       return
     }
 
@@ -64,7 +156,7 @@ router.post("/login", validateLogin, async (req, res) => {
           loginAttempts[key].until = Date.now() + LOCK_MS
         }
         logSecurityEvent("auth.login.failure", { ip, username })
-        res.status(401).json({ success: false, error: "Invalid credentials" })
+        res.status(401).json({ success: false, error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" })
         return
       }
       
@@ -89,7 +181,7 @@ router.post("/login", validateLogin, async (req, res) => {
         loginAttempts[key].until = Date.now() + LOCK_MS
       }
       logSecurityEvent("auth.login.failure", { ip, username: userData.username })
-      res.status(401).json({ success: false, error: "Invalid credentials" })
+      res.status(401).json({ success: false, error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" })
       return
     }
 
@@ -149,7 +241,7 @@ router.post("/login", validateLogin, async (req, res) => {
     console.error("Error logging in:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to login"
+      error: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ"
     })
   }
 })
@@ -169,7 +261,7 @@ router.post("/logout", async (req, res) => {
     console.error("Error logging out:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to logout"
+      error: "เกิดข้อผิดพลาดในการออกจากระบบ"
     })
   }
 })
@@ -190,7 +282,7 @@ router.get("/me", async (req, res) => {
     if (!token) {
       res.status(401).json({
         success: false,
-        error: "No token provided"
+        error: "ไม่พบ Token"
       })
       return
     }
@@ -204,7 +296,7 @@ router.get("/me", async (req, res) => {
       if (!userDoc.exists) {
         res.status(401).json({
           success: false,
-          error: "User not found"
+          error: "ไม่พบผู้ใช้ในระบบ"
         })
         return
       }
@@ -233,7 +325,7 @@ router.get("/me", async (req, res) => {
     } catch (jwtError) {
       res.status(401).json({
         success: false,
-        error: "Invalid or expired token"
+        error: "Token ไม่ถูกต้องหรือหมดอายุ"
       })
       return
     }
@@ -241,7 +333,7 @@ router.get("/me", async (req, res) => {
     console.error("Error checking auth status:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to check auth status"
+      error: "เกิดข้อผิดพลาดในการตรวจสอบสถานะการเข้าสู่ระบบ"
     })
   }
 })
