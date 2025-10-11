@@ -22,6 +22,7 @@ import type { MaterialHistory } from "@/types/material"
 import AddMaterialModal from "./add-material-modal"
 import DeleteMaterialModal from "./delete-material-modal"
 import SelectMachineModal from "./select-machine-modal"
+import EditMaterialModal from "./edit-material-modal"
 
 // Memoized Header Component
 const MaterialsHeader = memo(({ toggleSidebar }: { toggleSidebar: () => void }) => {
@@ -79,6 +80,7 @@ export default function MaterialsManagement() {
   const [historyFilterSearch, setHistoryFilterSearch] = useState("")
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Fetch materials and history on component mount
   useEffect(() => {
@@ -354,6 +356,26 @@ export default function MaterialsManagement() {
     }
   }
 
+  const handleEditMaterial = (material: Material) => {
+    setEditingMaterial(material)
+    setIsEditModalOpen(true)
+  }
+
+  const handleUpdateMaterial = async (updatedMaterial: Material) => {
+    try {
+      await updateMaterial(updatedMaterial.id, updatedMaterial)
+      const updatedMaterials = materials.map((m) =>
+        m.id === updatedMaterial.id ? updatedMaterial : m
+      )
+      setMaterials(updatedMaterials)
+      setIsEditModalOpen(false)
+      setEditingMaterial(null)
+    } catch (error) {
+      console.error("Error updating material:", error)
+      setError("ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง")
+    }
+  }
+
   const handleDeleteMaterial = (id: string) => {
     const material = materials.find((material) => material.id === id)
     if (material) {
@@ -527,6 +549,12 @@ export default function MaterialsManagement() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{material.date}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button
+                                  onClick={() => handleEditMaterial(material)}
+                                  className="text-yellow-500 hover:text-yellow-700 mr-4"
+                                >
+                                  แก้ไข
+                                </button>
                                 <button
                                   onClick={() => handleDeleteMaterial(material.id)}
                                   className="text-red-600 hover:text-red-900"
@@ -709,6 +737,12 @@ export default function MaterialsManagement() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDeleteMaterial}
+      />
+       <EditMaterialModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleUpdateMaterial}
+        material={editingMaterial}
       />
     </div>
   )
