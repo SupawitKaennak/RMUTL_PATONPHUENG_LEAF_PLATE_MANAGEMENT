@@ -40,7 +40,7 @@ router.get("/users", async (req, res) => {
     console.error("Error fetching users:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to fetch users"
+      error: "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้"
     })
   }
 })
@@ -54,7 +54,7 @@ router.get("/users/:id", async (req, res) => {
     if (!userDoc.exists) {
       res.status(404).json({
         success: false,
-        error: "User not found"
+        error: "ไม่พบผู้ใช้ในระบบ"
       })
       return
     }
@@ -80,7 +80,7 @@ router.get("/users/:id", async (req, res) => {
     console.error("Error fetching user:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to fetch user"
+      error: "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้"
     })
   }
 })
@@ -94,7 +94,7 @@ router.post("/users", async (req, res) => {
     if (!username || !email || !password || !fullName) {
       res.status(400).json({
         success: false,
-        error: "Missing required fields"
+        error: "ข้อมูลไม่ครบถ้วน"
       })
       return
     }
@@ -103,7 +103,7 @@ router.post("/users", async (req, res) => {
     if (!['admin', 'user'].includes(role)) {
       res.status(400).json({
         success: false,
-        error: "Invalid role"
+        error: "บทบาทไม่ถูกต้อง"
       })
       return
     }
@@ -116,7 +116,7 @@ router.post("/users", async (req, res) => {
     if (!existingUserSnapshot.empty) {
       res.status(400).json({
         success: false,
-        error: "Username already exists"
+        error: "ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว"
       })
       return
     }
@@ -128,7 +128,7 @@ router.post("/users", async (req, res) => {
     if (!existingEmailSnapshot.empty) {
       res.status(400).json({
         success: false,
-        error: "Email already exists"
+        error: "อีเมลนี้มีอยู่ในระบบแล้ว"
       })
       return
     }
@@ -176,7 +176,7 @@ router.post("/users", async (req, res) => {
     console.error("Error creating user:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to create user"
+      error: "เกิดข้อผิดพลาดในการสร้างผู้ใช้"
     })
   }
 })
@@ -192,7 +192,7 @@ router.put("/users/:id", async (req, res) => {
     if (!userDoc.exists) {
       res.status(404).json({
         success: false,
-        error: "User not found"
+        error: "ไม่พบผู้ใช้ในระบบ"
       })
       return
     }
@@ -201,7 +201,7 @@ router.put("/users/:id", async (req, res) => {
     if (role && !['admin', 'user'].includes(role)) {
       res.status(400).json({
         success: false,
-        error: "Invalid role"
+        error: "บทบาทไม่ถูกต้อง"
       })
       return
     }
@@ -217,7 +217,7 @@ router.put("/users/:id", async (req, res) => {
       if (!existingUserSnapshot.empty) {
         res.status(400).json({
           success: false,
-          error: "Username already exists"
+          error: "ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว"
         })
         return
       }
@@ -231,7 +231,7 @@ router.put("/users/:id", async (req, res) => {
       if (!existingEmailSnapshot.empty) {
         res.status(400).json({
           success: false,
-          error: "Email already exists"
+          error: "อีเมลนี้มีอยู่ในระบบแล้ว"
         })
         return
       }
@@ -272,7 +272,7 @@ router.put("/users/:id", async (req, res) => {
     console.error("Error updating user:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to update user"
+      error: "เกิดข้อผิดพลาดในการอัปเดตผู้ใช้"
     })
   }
 })
@@ -287,7 +287,7 @@ router.delete("/users/:id", async (req, res) => {
     if (!userDoc.exists) {
       res.status(404).json({
         success: false,
-        error: "User not found"
+        error: "ไม่พบผู้ใช้ในระบบ"
       })
       return
     }
@@ -298,7 +298,7 @@ router.delete("/users/:id", async (req, res) => {
     if (id === req.user?.userId) {
       res.status(400).json({
         success: false,
-        error: "Cannot delete your own account"
+        error: "ไม่สามารถลบบัญชีของตัวเองได้"
       })
       return
     }
@@ -322,7 +322,7 @@ router.delete("/users/:id", async (req, res) => {
     console.error("Error deleting user:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to delete user"
+      error: "เกิดข้อผิดพลาดในการลบผู้ใช้"
     })
   }
 })
@@ -346,7 +346,7 @@ router.put("/users/:id/reset-password", async (req, res) => {
     if (!userDoc.exists) {
       res.status(404).json({
         success: false,
-        error: "User not found"
+        error: "ไม่พบผู้ใช้ในระบบ"
       })
       return
     }
@@ -379,7 +379,7 @@ router.put("/users/:id/reset-password", async (req, res) => {
     console.error("Error resetting password:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to reset password"
+      error: "เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน"
     })
   }
 })
@@ -426,7 +426,7 @@ router.get("/stats", async (req, res) => {
     console.error("Error fetching system stats:", error)
     res.status(500).json({
       success: false,
-      error: "Failed to fetch system stats"
+      error: "เกิดข้อผิดพลาดในการดึงข้อมูลสถิติระบบ"
     })
   }
 })

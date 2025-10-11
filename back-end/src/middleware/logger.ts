@@ -6,6 +6,10 @@ export type SecurityEventType =
   | "auth.logout"
   | "auth.register.success"
   | "auth.register.failure"
+  | "admin.user.created"
+  | "admin.user.updated"
+  | "admin.user.deleted"
+  | "admin.user.password_reset"
 
 export function logSecurityEvent(event: SecurityEventType, details: Record<string, unknown>) {
   const payload = {

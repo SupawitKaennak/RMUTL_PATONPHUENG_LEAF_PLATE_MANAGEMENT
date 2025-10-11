@@ -101,11 +101,29 @@ export default function AdminUserManagement() {
   })
   const [editForm, setEditForm] = useState<UpdateUserData>({})
   
+  // Error states
+  const [createFormErrors, setCreateFormErrors] = useState<{
+    username?: string
+    email?: string
+    password?: string
+    fullName?: string
+  }>({})
+  
   const { toast } = useToast()
 
   useEffect(() => {
     fetchUsers()
   }, [])
+
+  // Clear errors when user starts typing
+  const clearFieldError = (field: string) => {
+    if (createFormErrors[field as keyof typeof createFormErrors]) {
+      setCreateFormErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }))
+    }
+  }
 
   useEffect(() => {
     filterUsers()
@@ -157,8 +175,18 @@ export default function AdminUserManagement() {
   }
 
   const handleCreateUser = async () => {
+    // Clear previous errors
+    setCreateFormErrors({})
+    
     try {
       if (!createForm.username || !createForm.email || !createForm.password || !createForm.fullName) {
+        const errors: any = {}
+        if (!createForm.username) errors.username = "กรุณากรอกชื่อผู้ใช้"
+        if (!createForm.email) errors.email = "กรุณากรอกอีเมล"
+        if (!createForm.password) errors.password = "กรุณากรอกรหัสผ่าน"
+        if (!createForm.fullName) errors.fullName = "กรุณากรอกชื่อเต็ม"
+        
+        setCreateFormErrors(errors)
         toast({
           title: "ข้อมูลไม่ครบถ้วน",
           description: "กรุณากรอกข้อมูลให้ครบถ้วน",
@@ -181,12 +209,28 @@ export default function AdminUserManagement() {
         role: "user",
         isActive: true
       })
+      setCreateFormErrors({})
       setCreateDialogOpen(false)
       fetchUsers()
     } catch (err: any) {
+      console.error("Create user error:", err)
+      
+      // Handle specific error messages
+      const errorMessage = err.message || "ไม่สามารถสร้างผู้ใช้ได้"
+      const errors: any = {}
+      
+      if (errorMessage.includes("ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว") || errorMessage.includes("Username already exists")) {
+        errors.username = "ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว"
+      }
+      if (errorMessage.includes("อีเมลนี้มีอยู่ในระบบแล้ว") || errorMessage.includes("Email already exists")) {
+        errors.email = "อีเมลนี้มีอยู่ในระบบแล้ว"
+      }
+      
+      setCreateFormErrors(errors)
+      
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: err.message || "ไม่สามารถสร้างผู้ใช้ได้",
+        description: errorMessage,
         variant: "destructive",
       })
     }
@@ -300,7 +344,12 @@ export default function AdminUserManagement() {
                       <RefreshCw className="h-4 w-4 mr-1" />
                       รีเฟรช
                     </Button>
-                    <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                    <Dialog open={createDialogOpen} onOpenChange={(open) => {
+                      setCreateDialogOpen(open)
+                      if (open) {
+                        setCreateFormErrors({})
+                      }
+                    }}>
                       <DialogTrigger asChild>
                         <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white">
                           <Plus className="h-4 w-4 mr-1" />
@@ -326,10 +375,18 @@ export default function AdminUserManagement() {
                                 </label>
                                 <Input
                                   value={createForm.username}
-                                  onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
+                                  onChange={(e) => {
+                                    setCreateForm({...createForm, username: e.target.value})
+                                    clearFieldError('username')
+                                  }}
                                   placeholder="กรอกชื่อผู้ใช้"
-                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                  className={`border-gray-300 focus:border-gray-500 focus:ring-green-500 ${
+                                    createFormErrors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                  }`}
                                 />
+                                {createFormErrors.username && (
+                                  <p className="text-red-500 text-xs mt-1">{createFormErrors.username}</p>
+                                )}
                               </div>
                               
                               <div>
@@ -339,10 +396,18 @@ export default function AdminUserManagement() {
                                 <Input
                                   type="email"
                                   value={createForm.email}
-                                  onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
+                                  onChange={(e) => {
+                                    setCreateForm({...createForm, email: e.target.value})
+                                    clearFieldError('email')
+                                  }}
                                   placeholder="กรอกอีเมล"
-                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                  className={`border-gray-300 focus:border-gray-500 focus:ring-green-500 ${
+                                    createFormErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                  }`}
                                 />
+                                {createFormErrors.email && (
+                                  <p className="text-red-500 text-xs mt-1">{createFormErrors.email}</p>
+                                )}
                               </div>
                               
                               <div>
@@ -351,10 +416,18 @@ export default function AdminUserManagement() {
                                 </label>
                                 <Input
                                   value={createForm.fullName}
-                                  onChange={(e) => setCreateForm({...createForm, fullName: e.target.value})}
+                                  onChange={(e) => {
+                                    setCreateForm({...createForm, fullName: e.target.value})
+                                    clearFieldError('fullName')
+                                  }}
                                   placeholder="กรอกชื่อเต็ม"
-                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                  className={`border-gray-300 focus:border-gray-500 focus:ring-green-500 ${
+                                    createFormErrors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                  }`}
                                 />
+                                {createFormErrors.fullName && (
+                                  <p className="text-red-500 text-xs mt-1">{createFormErrors.fullName}</p>
+                                )}
                               </div>
                               
                               <div>
@@ -364,10 +437,18 @@ export default function AdminUserManagement() {
                                 <Input
                                   type="password"
                                   value={createForm.password}
-                                  onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
+                                  onChange={(e) => {
+                                    setCreateForm({...createForm, password: e.target.value})
+                                    clearFieldError('password')
+                                  }}
                                   placeholder="กรอกรหัสผ่าน"
-                                  className="border-gray-300 focus:border-gray-500 focus:ring-green-500"
+                                  className={`border-gray-300 focus:border-gray-500 focus:ring-green-500 ${
+                                    createFormErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                                  }`}
                                 />
+                                {createFormErrors.password && (
+                                  <p className="text-red-500 text-xs mt-1">{createFormErrors.password}</p>
+                                )}
                               </div>
                             </div>
                             
